@@ -5,7 +5,7 @@ uniform mat4 u_ProjectionMatrix;
 uniform int u_subtriangles;
 uniform int u_tessFactor;
 
-uniform samplerBuffer vertexTBO;
+uniform samplerBuffer u_vertexTBO;
 
 out vec3 v_Vertex;
 out vec3 v_Normal;
@@ -24,20 +24,18 @@ void main () {
 	float fCol = subTriID - (fRow * fRow);
 	int uCol = int(fCol);
 	float v = incuv * floor(fCol * .5f);
-
 	u-= v;
 
 	float w = 1.0f - u - v;
 
 	//vertex index in current mesh
 	int vertexID = ((gl_VertexID / 3) / u_subtriangles) * 3 + (gl_VertexID % 3);
-	
 
-	int index = (vertexID / 3) * 3;
+	int index = (vertexID / 3) * 3; //round to % 3 == 0
 	//original triangle verticies	
-	vec4 v1 = texelFetch(vertexTBO, index);
-	vec4 v2 = texelFetch(vertexTBO, index+1);
-	vec4 v3 = texelFetch(vertexTBO, index+2);
+	vec4 v1 = texelFetch(u_vertexTBO, index);
+	vec4 v2 = texelFetch(u_vertexTBO, index+1);
+	vec4 v3 = texelFetch(u_vertexTBO, index+2);
 
 
 	switch(vertexID % 3) {
@@ -48,26 +46,16 @@ void main () {
 			}
 			break;
 		case 1:
-			if((uCol & 1) == 0) {
-				v += incuv;
-				u -= incuv;
-			}
-			else {
-				v += incuv;
-				u -= incuv;
+			v += incuv;
+			u -= incuv;
+			if((uCol & 1) != 0) {
 				w += incuv;
 				u -= incuv;		
 			}
 			break;
 		case 2:
-			if((uCol & 1) == 0) {
-				w += incuv;
-				u -= incuv;
-			}
-			else {
-				w += incuv;
-				u -= incuv;		
-			}
+			w += incuv;
+			u -= incuv;		
 			break;
 	}
 

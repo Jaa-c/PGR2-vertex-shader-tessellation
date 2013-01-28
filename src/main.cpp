@@ -51,6 +51,8 @@ GLuint originalTrianglesVBO = 0;
 GLuint vertexTBO = 0;
 GLuint textureBO = 0;
 
+GLuint meshID = 0;
+
 int pass;
 GLint g_tesselationFactor = 4;
 GLint g_subtriangles;
@@ -79,10 +81,9 @@ void TW_CALL cbCompileShaderProgram(void *clientData);
 void initGUI();
 
 const int triangleCount = 3;
-
-float triangles[3][3*triangleCount] = {0, 0, 0,  0, 1, 0,  1, 0.5f, 0,
-									   0, 0, 0,  0, -1, 0,  1, -0.5f, 0,
-									   0, 0, 0,  1, 0.5f, 0,  1, -0.5f, 0};
+float triangles[9*triangleCount] =	{0, 0, 0,  0, 1, 0,  1, 0.5f, 0,
+									 0, 0, 0,  0, -1, 0,  1, -0.5f, 0,
+									 0, 0, 0,  1, 0.5f, 0,  1, -0.5f, 0};
 
 float empty[] = {0};
 
@@ -125,20 +126,18 @@ void cbDisplay()
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_subtriangles"), g_subtriangles);
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
 				
-		
+		//vertex data in texture memory
 		glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
-		glBufferData(GL_TEXTURE_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, vertexTBO);
-	
-
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
+		glBindBuffer(GL_TEXTURE_BUFFER, 0);
+		
+		//draw call with enough verticies
 		glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
-		//Establish array contains vertices (not normals, colours, texture coords etc)
-		glEnableClientState(GL_VERTEX_ARRAY);
 		glDrawArrays(GL_TRIANGLES, 0, 3 * triangleCount * g_subtriangles);
-		glDisableClientState(GL_VERTEX_ARRAY);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		
 
-		//2nd pass
+		//2nd pass to highlight original triangles
 		glUseProgram(g_highlightProgramId);
 
 		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
@@ -147,18 +146,16 @@ void cbDisplay()
 		glGetFloatv(GL_PROJECTION_MATRIX, matrix);
 		glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, matrix);
 
-		glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
-		glBufferData(GL_TEXTURE_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, vertexTBO);
-
 		glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
-		glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
 		glDrawArrays(GL_TRIANGLES, 0, 3 * triangleCount);
-		glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, NULL);
+	
     // Turn off programmable pipeline
     glUseProgram(NULL);
 
@@ -180,29 +177,25 @@ void cbInitGL()
 
     // Set OpenGL state variables
     glClearColor(0.4f, 0.4f, 0.7f, 0);
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
 
     glEnable(GL_DEPTH_TEST);
     (g_FaceCulling) ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
 
-	//dataTempVBO
-	glGenBuffers(1, &originalTrianglesVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
-	glVertexPointer(3, GL_FLOAT, 0, NULL);//3 coordinates per vertex
-
-	//vertex buffer, using only for vertexID
-	glGenBuffers(1, &emptyVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(empty), empty, GL_STATIC_DRAW);
-	glVertexPointer(3, GL_FLOAT, 0, NULL);//?
-
 	//texture buffer with vertex coordinates for random acces
 	glGenBuffers(1, &vertexTBO);
-	glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
-	glBufferData(GL_TEXTURE_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
 
-	
+	//buffer with original triangles
+	glGenBuffers(1, &originalTrianglesVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * triangleCount, &triangles, GL_STATIC_DRAW);
+
+	//empty vertex buffer, using only for vertexID
+	glGenBuffers(1, &emptyVBO);
+	//glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(empty), empty, GL_STATIC_DRAW);
+
+
+	//meshTriangles = pgr2CreatePlaneMesh(2.0f, 10, 10, &meshVerticies);
 
     cbCompileShaderProgram(NULL);
 }
@@ -393,7 +386,6 @@ void cbKeyboardChanged(int key, int action)
     printf("[f]   g_UseFragmentShader = %s\n", g_UseFragmentShader ? "true" : "false");
     printf("[b]   re-compile shaders\n\n");
 }
-
 
 #ifdef USE_ANTTWEAKBAR
 //-----------------------------------------------------------------------------

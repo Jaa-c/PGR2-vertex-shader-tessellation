@@ -1,13 +1,13 @@
 #version 330
 
-uniform samplerBuffer vertexTBO;
+//uniform samplerBuffer vertexTBO;
 uniform mat4 u_ModelViewMatrix; 
 uniform mat4 u_ProjectionMatrix;
 
-void main () {
-	vec4 a_Vertex = texelFetch(vertexTBO, gl_VertexID);
-	
-	a_Vertex.z += 0.0001;
+layout (location = 0) in vec4 a_Vertex;
 
-	gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * a_Vertex;
+void main () {	
+	vec4 vertex = a_Vertex;
+	vertex.z += 0.0001;
+	gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vertex;
 }
