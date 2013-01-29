@@ -36,7 +36,7 @@ GLint    g_WindowWidth       = 800;    // Window width
 GLint    g_WindowHeight      = 600;    // Window height
 
 GLfloat  g_SceneRot[]        = { 0.0f, 0.0f, 0.0f, 1.0f }; // Scene orientation
-GLfloat  g_SceneTraZ         = 5.0f;   // Scene translation along z-axis
+GLfloat  g_SceneTraZ         = 10.0f;   // Scene translation along z-axis
 bool     g_SceneRotEnabled   = false;  // Scene auto-rotation enabled/disabled
 bool     g_WireMode          = true;  // Wire mode enabled/disabled
 bool     g_FaceCulling       = false;  // Face culling enabled/disabled
@@ -48,12 +48,10 @@ bool     g_UseFragmentShader = true;  // Use fragment shader
 
 GLuint emptyVBO = 0;
 GLuint originalTrianglesVBO = 0;
+GLuint originalTrianglesIBO = 0;
 GLuint vertexTBO = 0;
 GLuint textureBO = 0;
 
-GLuint meshID = 0;
-
-int pass;
 GLint g_tesselationFactor = 4;
 GLint g_subtriangles;
 
@@ -80,10 +78,58 @@ GLuint g_highlightProgramId = 0;				   // Shader program id
 void TW_CALL cbCompileShaderProgram(void *clientData);
 void initGUI();
 
-const int triangleCount = 3;
-float triangles[9*triangleCount] =	{0, 0, 0,  0, 1, 0,  1, 0.5f, 0,
+int triangleCount = 3;
+/*float triangles[9*3] =	{0, 0, 0,  0, 1, 0,  1, 0.5f, 0,
 									 0, 0, 0,  0, -1, 0,  1, -0.5f, 0,
-									 0, 0, 0,  1, 0.5f, 0,  1, -0.5f, 0};
+									 0, 0, 0,  1, 0.5f, 0,  1, -0.5f, 0};*/
+float* meshTriangles = 0;
+
+//plain mesh, no inices
+float* genPlainMesh(float size, int width, int height, int * count) {
+	
+	*count = width*height*2;
+	float* vert = new float[width*height*3*6];
+	
+	const float xd = size / (float) width;
+	const float yd = size / (float) height;
+	
+    const float startX = -size * 0.5f;
+    const float startY = -size * 0.5f;
+
+	float* ptr = vert;
+	for(int x = 0; x < width; x++) {
+		for(int y = 0; y < height; y++) {
+			*ptr++ = startX + x * xd;
+			*ptr++ = startY + y * yd;
+			*ptr++ = 0;
+
+			*ptr++ = startX + x * xd;
+			*ptr++ = startY + (y+1) * yd;
+			*ptr++ = 0;
+
+			*ptr++ = startX + (x+1) * xd;
+			*ptr++ = startY + (y+1) * yd;
+			*ptr++ = 0;
+
+			*ptr++ = startX + x * xd;
+			*ptr++ = startY + y * yd;
+			*ptr++ = 0;
+
+			*ptr++ = startX + (x+1) * xd;
+			*ptr++ = startY + y * yd;
+			*ptr++ = 0;
+
+			*ptr++ = startX + (x+1) * xd;
+			*ptr++ = startY + (y+1) * yd;
+			*ptr++ = 0;
+		}
+	}
+	
+	return vert;
+}
+
+
+float * triangles = genPlainMesh(10.0, 10, 10, &triangleCount);
 
 float empty[] = {0};
 
@@ -127,9 +173,16 @@ void cbDisplay()
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
 				
 		//vertex data in texture memory
-		glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
+		//glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
+		//glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
+		//glBindBuffer(GL_TEXTURE_BUFFER, 0);
+
+		GLuint hVertTex = glGetUniformLocation(g_tesselationProgramId, "u_vertexTBO");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, vertexTBO);
 		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
-		glBindBuffer(GL_TEXTURE_BUFFER, 0);
+		glUniform1i(hVertTex, 0);
+
 		
 		//draw call with enough verticies
 		glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
@@ -137,7 +190,7 @@ void cbDisplay()
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		
 
-		//2nd pass to highlight original triangles
+		//highlight original triangles
 		glUseProgram(g_highlightProgramId);
 
 		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
@@ -182,12 +235,16 @@ void cbInitGL()
     (g_FaceCulling) ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
 
 	//texture buffer with vertex coordinates for random acces
-	glGenBuffers(1, &vertexTBO);
+	glGenTextures(1, &vertexTBO);
+
+	//meshTriangles = pgr2CreatePlaneMesh(2.0f, 10, 10, &triangleCount);
 
 	//buffer with original triangles
 	glGenBuffers(1, &originalTrianglesVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * triangleCount, &triangles, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * triangleCount, triangles, GL_STATIC_DRAW);
+
+    
 
 	//empty vertex buffer, using only for vertexID
 	glGenBuffers(1, &emptyVBO);
@@ -195,7 +252,7 @@ void cbInitGL()
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(empty), empty, GL_STATIC_DRAW);
 
 
-	//meshTriangles = pgr2CreatePlaneMesh(2.0f, 10, 10, &meshVerticies);
+	
 
     cbCompileShaderProgram(NULL);
 }
