@@ -2,6 +2,7 @@
 
 in vec3 v_Vertex;
 in vec3 v_Normal;
+in vec3 v_Color;
 
 const vec3 light_pos = vec3(0.0, 0.5, 0.0);
 
@@ -17,5 +18,5 @@ void main() {
 
 	vec3 color = vec3(1.0f, 1.0f, 1.0);// * diffuse + specular;
 	
-	gl_FragColor = vec4(color, 1.0);
+	gl_FragColor = vec4(v_Color, 1.0);
 }

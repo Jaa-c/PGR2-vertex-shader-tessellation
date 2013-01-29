@@ -36,15 +36,16 @@ GLint    g_WindowWidth       = 800;    // Window width
 GLint    g_WindowHeight      = 600;    // Window height
 
 GLfloat  g_SceneRot[]        = { 0.0f, 0.0f, 0.0f, 1.0f }; // Scene orientation
-GLfloat  g_SceneTraZ         = 10.0f;   // Scene translation along z-axis
+GLfloat  g_SceneTraZ         = 12.0f;   // Scene translation along z-axis
 bool     g_SceneRotEnabled   = false;  // Scene auto-rotation enabled/disabled
 bool     g_WireMode          = true;  // Wire mode enabled/disabled
-bool     g_FaceCulling       = false;  // Face culling enabled/disabled
 
 bool     g_UseShaders        = true;  // Programmable pipeline on/off
 bool     g_UseVertexShader   = true;  // Use vertex shader
 bool     g_UseGeometryShader = false;  // Use geometry shader
 bool     g_UseFragmentShader = true;  // Use fragment shader
+
+bool	g_highlightOrig		 = true; //highlight original triangles
 
 GLuint emptyVBO = 0;
 GLuint originalTrianglesVBO = 0;
@@ -55,19 +56,9 @@ GLuint textureBO = 0;
 GLint g_tesselationFactor = 4;
 GLint g_subtriangles;
 
-enum EGeometry                         // Geometry type enum
-{	
-    ELEPHANT_GEOMETRY = 0, 
-    CUBE_GEOMETRY,
-    NUM_GEOMETRY_TYPES
-};
-int g_GeometryType = ELEPHANT_GEOMETRY; // Geometry type
-
-
 // GLSL variables
 GLuint g_tesselationProgramId = 0;                 // Shader program id
 GLuint g_highlightProgramId = 0;				   // Shader program id
-
 
 
 // FORWARD DECLARATIONS________________________________________________________
@@ -78,11 +69,7 @@ GLuint g_highlightProgramId = 0;				   // Shader program id
 void TW_CALL cbCompileShaderProgram(void *clientData);
 void initGUI();
 
-int triangleCount = 3;
-/*float triangles[9*3] =	{0, 0, 0,  0, 1, 0,  1, 0.5f, 0,
-									 0, 0, 0,  0, -1, 0,  1, -0.5f, 0,
-									 0, 0, 0,  1, 0.5f, 0,  1, -0.5f, 0};*/
-float* meshTriangles = 0;
+
 
 //plain mesh, no inices
 float* genPlainMesh(float size, int width, int height, int * count) {
@@ -103,11 +90,11 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 			*ptr++ = startY + y * yd;
 			*ptr++ = 0;
 
-			*ptr++ = startX + x * xd;
+			*ptr++ = startX + (x+1) * xd;
 			*ptr++ = startY + (y+1) * yd;
 			*ptr++ = 0;
 
-			*ptr++ = startX + (x+1) * xd;
+			*ptr++ = startX + x * xd;
 			*ptr++ = startY + (y+1) * yd;
 			*ptr++ = 0;
 
@@ -128,7 +115,7 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 	return vert;
 }
 
-
+int triangleCount = 0;
 float * triangles = genPlainMesh(10.0, 10, 10, &triangleCount);
 
 float empty[] = {0};
@@ -141,11 +128,10 @@ void cbDisplay()
 {
 
     static GLfloat scene_rot = 0.0f;
-    static GLuint s_tex_id = prg2CreateSimpleTexture(256, 256);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
-    (g_FaceCulling) ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
 
     // Setup camera
     glLoadIdentity();
@@ -189,23 +175,23 @@ void cbDisplay()
 		glDrawArrays(GL_TRIANGLES, 0, 3 * triangleCount * g_subtriangles);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		
+		if(g_highlightOrig && g_WireMode) {
+			//highlight original triangles
+			glUseProgram(g_highlightProgramId);
 
-		//highlight original triangles
-		glUseProgram(g_highlightProgramId);
-
-		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-		glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, matrix);
+			glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
+			glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, matrix);
 		
-		glGetFloatv(GL_PROJECTION_MATRIX, matrix);
-		glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, matrix);
+			glGetFloatv(GL_PROJECTION_MATRIX, matrix);
+			glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, matrix);
 
-		glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glEnableVertexAttribArray(0);
-		glDrawArrays(GL_TRIANGLES, 0, 3 * triangleCount);
-        glDisableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+			glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(0);
+			glDrawArrays(GL_TRIANGLES, 0, 3 * triangleCount);
+			glDisableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
 	}
 
 	
@@ -232,7 +218,7 @@ void cbInitGL()
     glClearColor(0.4f, 0.4f, 0.7f, 0);
 
     glEnable(GL_DEPTH_TEST);
-    (g_FaceCulling) ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
 
 	//texture buffer with vertex coordinates for random acces
 	glGenTextures(1, &vertexTBO);
@@ -244,15 +230,12 @@ void cbInitGL()
 	glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * triangleCount, triangles, GL_STATIC_DRAW);
 
-    
 
 	//empty vertex buffer, using only for vertexID
 	glGenBuffers(1, &emptyVBO);
 	//glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(empty), empty, GL_STATIC_DRAW);
 
-
-	
 
     cbCompileShaderProgram(NULL);
 }
@@ -371,21 +354,14 @@ void initGUI()
 
     // Render panel setup
     TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='wire mode' key=w help='Toggle wire mode.' ");
-    TwAddVarRW(controlBar, "face_culling", TW_TYPE_BOOLCPP, &g_FaceCulling, " group=Render label='face culling' key=c help='Toggle face culling.' ");
 
-    // Scene panel setup
-    TwEnumVal geometry_type[] = 
-    { 
-        { ELEPHANT_GEOMETRY    , "Elephant"},
-        { CUBE_GEOMETRY        , "Cube"    },
-    };
-    TwType geom_type = TwDefineEnum("Model", geometry_type, NUM_GEOMETRY_TYPES);
-    TwAddVarRW(controlBar, "model", geom_type, &g_GeometryType, " group='Scene' keyIncr=Space help='Change model.' ");
-    TwAddVarRW(controlBar, "auto-rotation", TW_TYPE_BOOLCPP, &g_SceneRotEnabled, " group='Scene' label='rotation' key=r help='Toggle scene rotation.' ");
+	TwAddVarRW(controlBar, "auto-rotation", TW_TYPE_BOOLCPP, &g_SceneRotEnabled, " group='Scene' label='rotation' key=r help='Toggle scene rotation.' ");
     TwAddVarRW(controlBar, "Translate", TW_TYPE_FLOAT, &g_SceneTraZ, " group='Scene' label='translate' min=1 max=1000 step=0.5 keyIncr=t keyDecr=T help='Scene translation.' ");
     TwAddVarRW(controlBar, "SceneRotation", TW_TYPE_QUAT4F, &g_SceneRot, " group='Scene' label='rotation' open help='Toggle scene orientation.' ");
 
     TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, " group='Tesselation' label='tess. factor' min=1 help='help' ");
+	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tesselation' label='highlight original' key=h help='Highlight original triangles' ");
+
 #endif
 }
 
@@ -415,18 +391,15 @@ void cbKeyboardChanged(int key, int action)
 {
     switch (key)
     {
-    case GLFW_KEY_SPACE:
-        g_GeometryType = (g_GeometryType + 1) % NUM_GEOMETRY_TYPES;
-        break;
-    case 't' : g_SceneTraZ        += 0.5f;                               break;
-    case 'T' : g_SceneTraZ        -= (g_SceneTraZ > 0.5) ? 0.5f : 0.0f;  break;
-    case 'r' : g_SceneRotEnabled   = !g_SceneRotEnabled;                 break;
-    case 'v' : g_UseVertexShader   = !g_UseVertexShader;                 break;
-    case 'g' : g_UseGeometryShader = !g_UseGeometryShader;               break;
-    case 'f' : g_UseFragmentShader = !g_UseFragmentShader;               break;
-    case 'w' : g_WireMode          = !g_WireMode;                        break;
-    case 'c' : g_FaceCulling       = !g_FaceCulling;                     break;
-    case 's' : g_UseShaders = !g_UseShaders;                             break;
+    case 't' : g_SceneTraZ        += 0.5f;                              break;
+    case 'T' : g_SceneTraZ        -= (g_SceneTraZ > 0.5) ? 0.5f : 0.0f; break;
+    case 'r' : g_SceneRotEnabled   = !g_SceneRotEnabled;                break;
+    case 'v' : g_UseVertexShader   = !g_UseVertexShader;                break;
+    case 'g' : g_UseGeometryShader = !g_UseGeometryShader;              break;
+    case 'f' : g_UseFragmentShader = !g_UseFragmentShader;				break;
+    case 'w' : g_WireMode          = !g_WireMode;                       break;
+    case 's' : g_UseShaders		   = !g_UseShaders;                     break;
+    case 'h' : g_highlightOrig     = !g_highlightOrig;                  break;
     case 'b' : 
         cbCompileShaderProgram(NULL);
         return;
@@ -436,11 +409,11 @@ void cbKeyboardChanged(int key, int action)
     printf("[t/T] g_SceneTraZ         = %f\n", g_SceneTraZ);
     printf("[r]   g_SceneRotEnabled   = %s\n", g_SceneRotEnabled ? "true" : "false");
     printf("[w]   g_WireMode          = %s\n", g_WireMode ? "true" : "false");
-    printf("[c]   g_FaceCulling       = %s\n\n", g_FaceCulling ? "true" : "false");
     printf("[s]   g_UseShaders        = %s\n", g_UseShaders ? "true" : "false");
     printf("[v]   g_UseVertexShader   = %s\n", g_UseVertexShader ? "true" : "false");
     printf("[g]   g_UseGeometryShader = %s\n", g_UseGeometryShader ? "true" : "false");
     printf("[f]   g_UseFragmentShader = %s\n", g_UseFragmentShader ? "true" : "false");
+    printf("[h]   g_highlightOrig     = %s\n", g_highlightOrig ? "true" : "false");
     printf("[b]   re-compile shaders\n\n");
 }
 
@@ -509,7 +482,7 @@ void cbMousePositionChanged(int x, int y)
 int main(int argc, char* argv[]) 
 {
     return common_main(g_WindowWidth, g_WindowHeight,
-                       "[PGR2] Simple GLSL Example",
+                       "[PGR2] Vertex shader tesselation",
                        cbInitGL,              // init GL callback function
                        cbDisplay,             // display callback function
                        cbWindowSizeChanged,   // window resize callback function
