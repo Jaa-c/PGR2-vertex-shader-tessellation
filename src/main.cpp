@@ -23,6 +23,9 @@
 
 
 // GLOBAL CONSTANTS____________________________________________________________
+//const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "../../common/textures/stone256_height.raw";
+const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/rgb8_interleaved.raw";
+
 const char* VS_TESS_FILE_NAME			= "src/tesselation.vert";
 const char* VS_HIGHLIGHT_FILE_NAME		= "src/highlight.vert";
 
@@ -55,6 +58,10 @@ GLuint textureBO = 0;
 
 GLint g_tesselationFactor = 4;
 GLint g_subtriangles;
+
+
+GLuint   g_HeightMapTexId    = 0;       // Height texture
+GLsizei  g_NumHeightMapTexels   = 0;    // Number of heigtmap texels
 
 // GLSL variables
 GLuint g_tesselationProgramId = 0;                 // Shader program id
@@ -116,7 +123,7 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 }
 
 int triangleCount = 0;
-float * triangles = genPlainMesh(10.0, 10, 10, &triangleCount);
+float * triangles = genPlainMesh(10.0, 20, 20, &triangleCount);
 
 float empty[] = {0};
 
@@ -157,6 +164,8 @@ void cbDisplay()
 		
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_subtriangles"), g_subtriangles);
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
+
+		
 				
 		//vertex data in texture memory
 		//glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
@@ -168,6 +177,11 @@ void cbDisplay()
 		glBindTexture(GL_TEXTURE_2D, vertexTBO);
 		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
 		glUniform1i(hVertTex, 0);
+
+		GLuint hHeightTex = glGetUniformLocation(g_tesselationProgramId, "u_heightTexture");
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, g_HeightMapTexId);
+		glUniform1i(hHeightTex, 1);
 
 		
 		//draw call with enough verticies
@@ -235,6 +249,12 @@ void cbInitGL()
 	glGenBuffers(1, &emptyVBO);
 	//glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(empty), empty, GL_STATIC_DRAW);
+	assert((emptyVBO > 0) && (originalTrianglesVBO > 0) && (vertexTBO > 0));
+	
+    // Load heightmap texture from raw-file
+    g_HeightMapTexId = prg2LoadRGBTextureFromRawFile(HEIGHTMAP_TEXTURE_FILE_NAME, &g_NumHeightMapTexels);
+
+	assert(g_HeightMapTexId > 0);
 
 
     cbCompileShaderProgram(NULL);
