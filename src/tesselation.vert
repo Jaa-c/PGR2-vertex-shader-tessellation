@@ -34,10 +34,10 @@ void main () {
 
 	vec4 c = (v1 + v2 + v3) / 3;
 
-	a_texCoord = ((c.xy/5.0f) * 0.5) + 0.5;
+	a_texCoord = ((c.xz/5.0f) * 0.5) + 0.5;
 
 	float height = texture2D(u_heightTexture, a_texCoord).r * heightMult;// * 0.3f;
-	c.z += height;
+	c.y += height;
 
 	vec4 viewC = u_ProjectionMatrix * u_ModelViewMatrix * c;
 	float dist = sqrt(viewC.x * viewC.x + viewC.y * viewC.y + viewC.z * viewC.z); 
@@ -90,7 +90,7 @@ void main () {
 
 	
 
-	a_texCoord = ((a_Vertex.xy/5.0f) * 0.5) + 0.5;
+	a_texCoord = ((a_Vertex.xz/5.0f) * 0.5) + 0.5;
 
 	//this code fragment is taken from http://stackoverflow.com/a/5284527/683905
     vec4 wave = texture2D(u_heightTexture, a_texCoord);
@@ -107,7 +107,7 @@ void main () {
 
 	
 	//height = texture2D(u_heightTexture, a_texCoord).r * 5.0;// * 0.3f;
-	a_Vertex.z += bump.w * heightMult;
+	a_Vertex.y += bump.w * heightMult;
 	
 	vec4 viewPos = u_ModelViewMatrix * a_Vertex;
 	v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));

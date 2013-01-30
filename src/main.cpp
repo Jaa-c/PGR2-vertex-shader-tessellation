@@ -22,6 +22,8 @@
 #include "../../common/models/cube.h"
 
 
+using namespace glm;
+
 // GLOBAL CONSTANTS____________________________________________________________
 //const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "../../common/textures/stone256_height.raw";
 //const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/rgb8_interleaved.raw";
@@ -36,13 +38,14 @@ const char* GS_FILE_NAME				= "src/simple.geom";
 const char* FS_TESS_FILE_NAME			= "src/tesselation.frag";
 const char* FS_HIGHLIGHT_FILE_NAME		= "src/highlight.frag";
 
+
+const float STEP = 0.5f;
 // GLOBAL VARIABLES____________________________________________________________
 GLint    g_WindowWidth       = 800;    // Window width
 GLint    g_WindowHeight      = 600;    // Window height
 
-GLfloat  g_SceneRot[]        = { 0.0f, 0.0f, 0.0f, 1.0f }; // Scene orientation
-GLfloat  g_SceneTraZ         = 12.0f;   // Scene translation along z-axis
-bool     g_SceneRotEnabled   = false;  // Scene auto-rotation enabled/disabled
+//GLfloat  g_SceneTraZ         = 12.0f;   // Scene translation along z-axis
+
 bool     g_WireMode          = true;  // Wire mode enabled/disabled
 
 bool     g_UseShaders        = true;  // Programmable pipeline on/off
@@ -51,6 +54,11 @@ bool     g_UseGeometryShader = false;  // Use geometry shader
 bool     g_UseFragmentShader = true;  // Use fragment shader
 
 bool	g_highlightOrig		 = true; //highlight original triangles
+
+// Transformation matrixes
+mat4 g_CameraProjectionMatrix;             // Camera projection transformation
+mat4 g_CameraViewMatrix;                   // Camera view transformation
+
 
 GLuint emptyVBO = 0;
 GLuint originalTrianglesVBO = 0;
@@ -72,6 +80,21 @@ GLuint g_tesselationProgramId = 0;                 // Shader program id
 GLuint g_highlightProgramId = 0;				   // Shader program id
 
 
+
+///moving and stuff
+vec3 cameraPos(0.0f, -1.0f, -10.0f);
+vec3 cameraRot(0.0f, 0.0f, 0.0f);
+vec3 cameraPosLag(cameraPos);
+vec3 cameraRotLag(cameraRot);
+
+// view params
+int ox, oy;
+
+const float inertia = 0.1f;//.1
+const float rotateSpeed = 0.5f;
+const float walkSpeed = 0.1f;//.05
+
+
 // FORWARD DECLARATIONS________________________________________________________
 #ifdef USE_ANTTWEAKBAR
     void TW_CALL cbSetShaderStatus(const void*, void*);
@@ -79,6 +102,31 @@ GLuint g_highlightProgramId = 0;				   // Shader program id
 #endif
 void TW_CALL cbCompileShaderProgram(void *clientData);
 void initGUI();
+
+
+
+//-----------------------------------------------------------------------------
+// Name: updateCameraViewMatrix()
+// Desc: Use OpenGL to compute camera's projection and world-to-camera space 
+//       transformation matrixes
+//-----------------------------------------------------------------------------
+void updateCameraViewMatrix()
+{
+	// move camera
+    if (cameraPos[1] > 0.0f)
+    {
+        cameraPos[1] = 0.0f;
+    }
+
+    cameraPosLag += (cameraPos - cameraPosLag) * inertia;
+    cameraRotLag += (cameraRot - cameraRotLag) * inertia;
+
+    // view transform
+	g_CameraViewMatrix = rotate(mat4(1.0f), cameraRotLag[0], vec3(1.0, 0.0, 0.0));
+	g_CameraViewMatrix = rotate(g_CameraViewMatrix, cameraRotLag[1], vec3(0.0, 1.0, 0.0));
+	g_CameraViewMatrix = translate(g_CameraViewMatrix, cameraPosLag);
+
+}
 
 
 
@@ -98,28 +146,28 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 	for(int x = 0; x < width; x++) {
 		for(int y = 0; y < height; y++) {
 			*ptr++ = startX + x * xd;
-			*ptr++ = startY + y * yd;
 			*ptr++ = 0;
+			*ptr++ = startY + y * yd;
 
 			*ptr++ = startX + (x+1) * xd;
-			*ptr++ = startY + (y+1) * yd;
 			*ptr++ = 0;
+			*ptr++ = startY + (y+1) * yd;
 
 			*ptr++ = startX + x * xd;
-			*ptr++ = startY + (y+1) * yd;
 			*ptr++ = 0;
+			*ptr++ = startY + (y+1) * yd;
 
 			*ptr++ = startX + x * xd;
-			*ptr++ = startY + y * yd;
 			*ptr++ = 0;
+			*ptr++ = startY + y * yd;
 
 			*ptr++ = startX + (x+1) * xd;
-			*ptr++ = startY + y * yd;
 			*ptr++ = 0;
+			*ptr++ = startY + y * yd;
 
 			*ptr++ = startX + (x+1) * xd;
+			*ptr++ = 0;
 			*ptr++ = startY + (y+1) * yd;
-			*ptr++ = 0;
 		}
 	}
 	
@@ -137,18 +185,13 @@ float empty[] = {0};
 //-----------------------------------------------------------------------------
 void cbDisplay()
 {
-
-    static GLfloat scene_rot = 0.0f;
-
+	
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
 	glDisable(GL_CULL_FACE);
 
-    // Setup camera
-    glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -g_SceneTraZ);
-    pgr2AddQuaternionRotationToTransformation(g_SceneRot);
-    glRotatef(scene_rot, 0.0f, 1.0f, 0.0f);
+	// Update camera transformation matrix
+    updateCameraViewMatrix();
 
     // Turn on programmable pipeline
     if (g_UseShaders)
@@ -159,12 +202,8 @@ void cbDisplay()
 		g_subtriangles = g_tesselationFactor * g_tesselationFactor;
 				
 		//nahrajeme modelview a projection matrix do shaderu
-		GLfloat matrix[16] = {0};
-		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-		glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, matrix);
-		
-		glGetFloatv(GL_PROJECTION_MATRIX, matrix);
-		glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, matrix);
+		glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
 		
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_subtriangles"), g_subtriangles);
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
@@ -202,11 +241,10 @@ void cbDisplay()
 			//highlight original triangles
 			glUseProgram(g_highlightProgramId);
 
-			glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-			glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, matrix);
+			//nahrajeme modelview a projection matrix do shaderu
+			glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
 		
-			glGetFloatv(GL_PROJECTION_MATRIX, matrix);
-			glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, matrix);
 
 			hHeightTex = glGetUniformLocation(g_highlightProgramId, "u_heightTexture");
 			glActiveTexture(GL_TEXTURE0);
@@ -228,10 +266,6 @@ void cbDisplay()
     // Turn off programmable pipeline
     glUseProgram(NULL);
 
-    if (g_SceneRotEnabled)
-    {
-        scene_rot+=0.25;
-    }
 }
 
 
@@ -380,23 +414,18 @@ void initGUI()
 
     TwWindowSize(g_WindowWidth, g_WindowHeight);
     TwBar *controlBar = TwNewBar("Controls");
-    TwDefine(" Controls position='10 10' size='200 340' refresh=0.1 ");
+    TwDefine(" Controls position='10 10' size='200 200' refresh=0.1 ");
 
-    TwAddVarCB(controlBar, "use_shaders", TW_TYPE_BOOLCPP, cbSetShaderStatus, cbGetShaderStatus, NULL, " label='shaders' key=s help='Turn programmable pipeline on/off.' ");
+    TwAddVarCB(controlBar, "use_shaders", TW_TYPE_BOOLCPP, cbSetShaderStatus, cbGetShaderStatus, NULL, " label='shaders' key=q help='Turn programmable pipeline on/off.' ");
 
     // Shader panel setup
     TwAddVarRW(controlBar, "vs", TW_TYPE_BOOLCPP, &g_UseVertexShader, " group='Shaders' label='vertex' key=v help='Toggle vertex shader.' ");
-    TwAddVarRW(controlBar, "gs", TW_TYPE_BOOLCPP, &g_UseGeometryShader, " group='Shaders' label='geometry' key=g help='Toggle geometry shader.' ");
+    //TwAddVarRW(controlBar, "gs", TW_TYPE_BOOLCPP, &g_UseGeometryShader, " group='Shaders' label='geometry' key=g help='Toggle geometry shader.' ");
     TwAddVarRW(controlBar, "fs", TW_TYPE_BOOLCPP, &g_UseFragmentShader, " group='Shaders' label='fragment' key=f help='Toggle fragment shader.' ");
     TwAddButton(controlBar, "build", cbCompileShaderProgram, NULL, " group='Shaders' label='build' key=b help='Build shader program.' ");
-//  TwDefine( " Controls/Shaders readonly=true "); 
 
     // Render panel setup
-    TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='wire mode' key=w help='Toggle wire mode.' ");
-
-	TwAddVarRW(controlBar, "auto-rotation", TW_TYPE_BOOLCPP, &g_SceneRotEnabled, " group='Scene' label='rotation' key=r help='Toggle scene rotation.' ");
-    TwAddVarRW(controlBar, "Translate", TW_TYPE_FLOAT, &g_SceneTraZ, " group='Scene' label='translate' min=1 max=1000 step=0.5 keyIncr=t keyDecr=T help='Scene translation.' ");
-    TwAddVarRW(controlBar, "SceneRotation", TW_TYPE_QUAT4F, &g_SceneRot, " group='Scene' label='rotation' open help='Toggle scene orientation.' ");
+    TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='wire mode' key=m help='Toggle wire mode.' ");
 
     TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, " group='Tesselation' label='tess. factor' min=1 help='help' ");
 	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tesselation' label='highlight original' key=h help='Highlight original triangles' ");
@@ -411,14 +440,11 @@ void initGUI()
 //-----------------------------------------------------------------------------
 void cbWindowSizeChanged(int width, int height)
 {
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(55.0f, GLfloat(width)/height, 0.1f, 1000.0f);
-    glMatrixMode(GL_MODELVIEW);
-
     g_WindowWidth  = width;
     g_WindowHeight = height;
+
+	glViewport(0, 0, g_WindowWidth, g_WindowHeight);
+    g_CameraProjectionMatrix = glm::perspective(55.0f, GLfloat(g_WindowWidth)/g_WindowHeight, 0.10f, 100.0f);
 }
 
 
@@ -430,25 +456,44 @@ void cbKeyboardChanged(int key, int action)
 {
     switch (key)
     {
-    case 't' : g_SceneTraZ        += 0.5f;                              break;
-    case 'T' : g_SceneTraZ        -= (g_SceneTraZ > 0.5) ? 0.5f : 0.0f; break;
-    case 'r' : g_SceneRotEnabled   = !g_SceneRotEnabled;                break;
+		case 's' : // backwards
+			cameraPos[0] -= g_CameraViewMatrix[0][2] * walkSpeed;
+			cameraPos[1] -= g_CameraViewMatrix[1][2] * walkSpeed;
+			cameraPos[2] -= g_CameraViewMatrix[2][2] * walkSpeed;
+			break;
+		case 'w' : // forwards
+			cameraPos[0] += g_CameraViewMatrix[0][2] * walkSpeed;
+			cameraPos[1] += g_CameraViewMatrix[1][2] * walkSpeed;
+			cameraPos[2] += g_CameraViewMatrix[2][2] * walkSpeed;
+			
+			break;
+		case 'a' : 
+			cameraPos[0] += g_CameraViewMatrix[0][0] * walkSpeed;
+			cameraPos[1] += g_CameraViewMatrix[1][0] * walkSpeed;
+			cameraPos[2] += g_CameraViewMatrix[2][0] * walkSpeed;
+			
+			break;
+		case 'd' : 
+			cameraPos[0] -= g_CameraViewMatrix[0][0] * walkSpeed;
+			cameraPos[1] -= g_CameraViewMatrix[1][0] * walkSpeed;
+			cameraPos[2] -= g_CameraViewMatrix[2][0] * walkSpeed;
+			break;
+
     case 'v' : g_UseVertexShader   = !g_UseVertexShader;                break;
     case 'g' : g_UseGeometryShader = !g_UseGeometryShader;              break;
     case 'f' : g_UseFragmentShader = !g_UseFragmentShader;				break;
-    case 'w' : g_WireMode          = !g_WireMode;                       break;
-    case 's' : g_UseShaders		   = !g_UseShaders;                     break;
+    case 'm' : g_WireMode          = !g_WireMode;                       break;
+    //case 's' : g_UseShaders		   = !g_UseShaders;                     break;
     case 'h' : g_highlightOrig     = !g_highlightOrig;                  break;
     case 'b' : 
         cbCompileShaderProgram(NULL);
         return;
         break;
     }
+	return;
 
-    printf("[t/T] g_SceneTraZ         = %f\n", g_SceneTraZ);
-    printf("[r]   g_SceneRotEnabled   = %s\n", g_SceneRotEnabled ? "true" : "false");
-    printf("[w]   g_WireMode          = %s\n", g_WireMode ? "true" : "false");
-    printf("[s]   g_UseShaders        = %s\n", g_UseShaders ? "true" : "false");
+    printf("[m]   g_WireMode          = %s\n", g_WireMode ? "true" : "false");
+    //printf("[s]   g_UseShaders        = %s\n", g_UseShaders ? "true" : "false");
     printf("[v]   g_UseVertexShader   = %s\n", g_UseVertexShader ? "true" : "false");
     printf("[g]   g_UseGeometryShader = %s\n", g_UseGeometryShader ? "true" : "false");
     printf("[f]   g_UseFragmentShader = %s\n", g_UseFragmentShader ? "true" : "false");
@@ -482,7 +527,6 @@ void TW_CALL cbGetShaderStatus(void *value, void *clientData)
     *(bool*)(value) = g_UseShaders;
 } 
 
-#else
 bool g_MouseRotationEnabled = false;
 
 //-----------------------------------------------------------------------------
@@ -501,19 +545,20 @@ void GLFWCALL cbMouseButtonChanged(int button, int action)
 //-----------------------------------------------------------------------------
 void cbMousePositionChanged(int x, int y)
 {
-    static int s_LastMousePoxX = x;
-    static int s_LastMousePoxY = y;
+	float dx, dy;
+    dx = (float)(x - ox);
+    dy = (float)(y - oy);
+
+	ox = x;
+    oy = y;
 
     if (g_MouseRotationEnabled)
     {
-        g_SceneRot[1] +=  0.9f*(x - s_LastMousePoxX);
-        g_SceneRot[2] +=  0.9f*(y - s_LastMousePoxY);
-        s_LastMousePoxX = x;
-        s_LastMousePoxY = y;
+		cameraRot[0] += dy * rotateSpeed;
+        cameraRot[1] += dx * rotateSpeed;
     }
 }
-#endif
-
+#endif;
 
 //-----------------------------------------------------------------------------
 // Name: main()
@@ -527,12 +572,7 @@ int main(int argc, char* argv[])
                        cbDisplay,             // display callback function
                        cbWindowSizeChanged,   // window resize callback function
                        cbKeyboardChanged,     // keyboard callback function
-#ifdef USE_ANTTWEAKBAR
-                       NULL,                  // mouse button callback function
-                       NULL                   // mouse motion callback function
-#else
                        cbMouseButtonChanged,  // mouse button callback function
                        cbMousePositionChanged // mouse motion callback function
-#endif
                        );
 }

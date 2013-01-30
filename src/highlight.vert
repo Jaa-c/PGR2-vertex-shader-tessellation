@@ -12,10 +12,10 @@ const float heightMult = 3.0f;
 
 void main () {
 	vec4 vertex = a_Vertex;
-	vec2 texCoord = ((vertex.xy/5.0f) * 0.5) + 0.5;
+	vec2 texCoord = ((vertex.xz/5.0f) * 0.5) + 0.5;
 	float height = texture2D(u_heightTexture, texCoord).r * heightMult;
 
-	vertex.z += height + 0.001;
+	vertex.y += height + 0.01;
 
 	gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vertex;
 }
