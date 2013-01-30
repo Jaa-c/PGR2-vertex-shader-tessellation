@@ -4,13 +4,15 @@ uniform mat4 u_ModelViewMatrix;
 uniform mat4 u_ProjectionMatrix;
 uniform int u_subtriangles;
 uniform int u_tessFactor;
+uniform float u_maxTessDistance;
+uniform bool u_freeze;
+uniform vec3 u_freezePos;
 
 uniform samplerBuffer u_vertexTBO;
 uniform sampler2D u_heightTexture;
 
 out vec3 v_Vertex;
 out vec3 v_Normal;
-out vec3 v_Color;
 out vec2 a_texCoord;
 
 vec4 a_Vertex;
@@ -19,7 +21,8 @@ vec4 a_Vertex;
 const vec2 size = vec2(2.0,0.0);
 const ivec3 off = ivec3(-1,0,1);
 
-const float heightMult = 3.0f;
+const float heightMult = 0.1f;
+float minDistance = 0.5;
 
 void main () {
 
@@ -33,23 +36,38 @@ void main () {
 	vec4 v3 = texelFetch(u_vertexTBO, index+2);
 
 	vec4 c = (v1 + v2 + v3) / 3;
+	
+	vec3 origin;
 
 	a_texCoord = ((c.xz/5.0f) * 0.5) + 0.5;
 
-	float height = texture2D(u_heightTexture, a_texCoord).r * heightMult;// * 0.3f;
+	float height = texture2D(u_heightTexture, a_texCoord).r * heightMult;
 	c.y += height;
 
-	vec4 viewC = u_ProjectionMatrix * u_ModelViewMatrix * c;
-	float dist = sqrt(viewC.x * viewC.x + viewC.y * viewC.y + viewC.z * viewC.z); 
-	
-	float param = min(1.0f/(dist/1.5f), 1.0f);//2
+	vec3 d;
+	if(u_freeze) {
+		d = c.xyz + u_freezePos;
+	}
+	else {
+		vec4 viewC = u_ProjectionMatrix * u_ModelViewMatrix * c;
+		d = viewC.xyz;
+	}
+	float dist = sqrt(d.x * d.x + d.y * d.y + d.z * d.z); 
+			
+	//float param = min(1.0f/(dist/1.5f), 1.0f);//2
+
+	float param;
+	if(dist < minDistance) {
+		param = 1;
+	}
+	else {
+		dist -= minDistance;
+		dist /= (u_maxTessDistance - minDistance);
+		param = 1 - dist;	
+	}
 
 	int tessFactor = max(int(floor(u_tessFactor * param)), 1);
 	int subTriangles = tessFactor * tessFactor;
-
-
-	v_Color = vec3(1.0, 1.0, param);
-
 
 	int subTriID = (gl_VertexID / 3) % subTriangles;
 
@@ -104,16 +122,13 @@ void main () {
     vec4 bump = vec4( cross(va,vb), s11 );
 
 
-
-	
-	//height = texture2D(u_heightTexture, a_texCoord).r * 5.0;// * 0.3f;
-	a_Vertex.y += bump.w * heightMult;
+	a_Vertex.y += (bump.w) * heightMult;
 	
 	vec4 viewPos = u_ModelViewMatrix * a_Vertex;
 	v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));
 	
 	v_Vertex = viewPos.xyz;
-	gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * a_Vertex;
+	gl_Position = u_ProjectionMatrix * viewPos;
 	//v_Vertex = gl_Position.xyz;
 	//gl_Position = a_Vertex;
 

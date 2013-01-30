@@ -21,14 +21,16 @@
 #include "../../common/models/elephant.h"
 #include "../../common/models/cube.h"
 
+#include <iostream>
+
 
 using namespace glm;
 
 // GLOBAL CONSTANTS____________________________________________________________
-//const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "../../common/textures/stone256_height.raw";
-//const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/rgb8_interleaved.raw";
-const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/test_1024.raw";
-const char*	  DIFFUSE_TEXTURE_FILE_NAME = "data/test_1024_diffuse.raw";
+//const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/test_1024.raw";
+//const char*	  DIFFUSE_TEXTURE_FILE_NAME = "data/test_1024_diffuse.raw";
+const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/world_height_8192.raw";
+const char*	  DIFFUSE_TEXTURE_FILE_NAME = "data/world_diffuse_8192.raw";
 
 const char* VS_TESS_FILE_NAME			= "src/tesselation.vert";
 const char* VS_HIGHLIGHT_FILE_NAME		= "src/highlight.vert";
@@ -44,8 +46,6 @@ const float STEP = 0.5f;
 GLint    g_WindowWidth       = 800;    // Window width
 GLint    g_WindowHeight      = 600;    // Window height
 
-//GLfloat  g_SceneTraZ         = 12.0f;   // Scene translation along z-axis
-
 bool     g_WireMode          = true;  // Wire mode enabled/disabled
 
 bool     g_UseShaders        = true;  // Programmable pipeline on/off
@@ -53,7 +53,16 @@ bool     g_UseVertexShader   = true;  // Use vertex shader
 bool     g_UseGeometryShader = false;  // Use geometry shader
 bool     g_UseFragmentShader = true;  // Use fragment shader
 
-bool	g_highlightOrig		 = true; //highlight original triangles
+bool	g_highlightOrig		 = false; //highlight original triangles
+
+bool	g_freeze			 = false; //freeze tesselation in current location
+
+
+
+float	g_maxTessDistance	 = 4.0f;
+
+GLint g_tesselationFactor = 10;
+
 
 // Transformation matrixes
 mat4 g_CameraProjectionMatrix;             // Camera projection transformation
@@ -66,7 +75,6 @@ GLuint originalTrianglesIBO = 0;
 GLuint vertexTBO = 0;
 GLuint textureBO = 0;
 
-GLint g_tesselationFactor = 4;
 GLint g_subtriangles;
 
 
@@ -82,17 +90,19 @@ GLuint g_highlightProgramId = 0;				   // Shader program id
 
 
 ///moving and stuff
-vec3 cameraPos(0.0f, -1.0f, -10.0f);
+vec3 cameraPos(0.0f, -1.0f, -4.0f);
 vec3 cameraRot(0.0f, 0.0f, 0.0f);
 vec3 cameraPosLag(cameraPos);
 vec3 cameraRotLag(cameraRot);
 
+
+vec3	g_freezePos(cameraPos);
 // view params
 int ox, oy;
 
 const float inertia = 0.1f;//.1
 const float rotateSpeed = 0.5f;
-const float walkSpeed = 0.1f;//.05
+const float walkSpeed = 0.02f;//.05, .1
 
 
 // FORWARD DECLARATIONS________________________________________________________
@@ -113,9 +123,9 @@ void initGUI();
 void updateCameraViewMatrix()
 {
 	// move camera
-    if (cameraPos[1] > 0.0f)
+    if (cameraPos[1] > -0.1f)
     {
-        cameraPos[1] = 0.0f;
+        cameraPos[1] = -0.1f;
     }
 
     cameraPosLag += (cameraPos - cameraPosLag) * inertia;
@@ -175,10 +185,9 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 }
 
 int triangleCount = 0;
-float * triangles = genPlainMesh(10.0, 20, 20, &triangleCount);
+float * triangles = genPlainMesh(10.0, 100, 100, &triangleCount);
 
 float empty[] = {0};
-
 //-----------------------------------------------------------------------------
 // Name: cbDisplay()
 // Desc: 
@@ -207,9 +216,10 @@ void cbDisplay()
 		
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_subtriangles"), g_subtriangles);
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
+		glUniform1f(glGetUniformLocation(g_tesselationProgramId, "u_maxTessDistance"), g_maxTessDistance);
+		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_freeze"), g_freeze);
+		glUniform3fv(glGetUniformLocation(g_tesselationProgramId, "u_freezePos"), 1, &g_freezePos.x);
 
-		
-				
 		//vertex data in texture memory
 		//glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
 		//glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
@@ -275,6 +285,9 @@ void cbDisplay()
 //-----------------------------------------------------------------------------
 void cbInitGL()
 {
+
+
+
     // Init app GUI
     initGUI();
 
@@ -398,6 +411,18 @@ void TW_CALL cbCompileShaderProgram(void *clientData)
 
 }
 
+/** Anttweakbar callback for gpu vs cpu button */
+void TW_CALL cbFreeze(const void *value, void *clientData)
+{
+	g_freezePos = vec3(cameraPos);
+	g_freeze = !g_freeze;
+}
+
+/** Anttweakbar callback for gpu vs cpu button */
+void TW_CALL cbGetFreeze(void *value, void *clientData)
+{
+    *(bool*)(value) = g_freeze;
+} 
 
 //-----------------------------------------------------------------------------
 // Name: initGUI()
@@ -414,7 +439,7 @@ void initGUI()
 
     TwWindowSize(g_WindowWidth, g_WindowHeight);
     TwBar *controlBar = TwNewBar("Controls");
-    TwDefine(" Controls position='10 10' size='200 200' refresh=0.1 ");
+    TwDefine(" Controls position='10 10' size='200 300' refresh=0.1 ");
 
     TwAddVarCB(controlBar, "use_shaders", TW_TYPE_BOOLCPP, cbSetShaderStatus, cbGetShaderStatus, NULL, " label='shaders' key=q help='Turn programmable pipeline on/off.' ");
 
@@ -428,8 +453,11 @@ void initGUI()
     TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='wire mode' key=m help='Toggle wire mode.' ");
 
     TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, " group='Tesselation' label='tess. factor' min=1 help='help' ");
+	TwAddVarRW(controlBar, "Max tess. dist.", TW_TYPE_FLOAT, &g_maxTessDistance, " group='Tesselation' label='max tess. dist' min=1 step=0.25 help='Distance from camera where tesselatio ends' ");
 	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tesselation' label='highlight original' key=h help='Highlight original triangles' ");
-
+	
+	TwAddVarCB(controlBar, "Freeze", TW_TYPE_BOOLCPP, cbFreeze, cbGetFreeze, NULL, " group='Tesselation' label='Freeze tess.' help='freeze tesselation in current point' ");
+	
 #endif
 }
 
@@ -444,7 +472,7 @@ void cbWindowSizeChanged(int width, int height)
     g_WindowHeight = height;
 
 	glViewport(0, 0, g_WindowWidth, g_WindowHeight);
-    g_CameraProjectionMatrix = glm::perspective(55.0f, GLfloat(g_WindowWidth)/g_WindowHeight, 0.10f, 100.0f);
+    g_CameraProjectionMatrix = glm::perspective(55.0f, GLfloat(g_WindowWidth)/g_WindowHeight, 0.010f, 100.0f);
 }
 
 
