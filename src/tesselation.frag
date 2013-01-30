@@ -6,7 +6,8 @@ in vec3 v_Color;
 in vec2 a_texCoord;
 
 
-uniform sampler2D u_heightTexture;
+//uniform sampler2D u_heightTexture;
+uniform sampler2D u_diffTexture;
 
 const vec3 light_pos = vec3(0.0, 0.5, 0.0);
 
@@ -21,7 +22,7 @@ void main() {
 	float specular = pow(max(dot(R, E), 0.0), 32.0);
 
 	//vec3 color = vec3(1.0f, 1.0f, 1.0);// * diffuse + specular;
-	vec3 color = texture2D(u_heightTexture, a_texCoord).xyz * diffuse;
+	vec3 color = texture2D(u_diffTexture, a_texCoord).xyz * diffuse;
 	
 	gl_FragColor = vec4(color, 1.0);
 }

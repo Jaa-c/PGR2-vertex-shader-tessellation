@@ -19,6 +19,8 @@ vec4 a_Vertex;
 const vec2 size = vec2(2.0,0.0);
 const ivec3 off = ivec3(-1,0,1);
 
+const float heightMult = 3.0f;
+
 void main () {
 
 	//first find distance from camera	
@@ -34,7 +36,7 @@ void main () {
 
 	a_texCoord = ((c.xy/5.0f) * 0.5) + 0.5;
 
-	float height = texture2D(u_heightTexture, a_texCoord).r * 5.0;// * 0.3f;
+	float height = texture2D(u_heightTexture, a_texCoord).r * heightMult;// * 0.3f;
 	c.z += height;
 
 	vec4 viewC = u_ProjectionMatrix * u_ModelViewMatrix * c;
@@ -90,6 +92,7 @@ void main () {
 
 	a_texCoord = ((a_Vertex.xy/5.0f) * 0.5) + 0.5;
 
+	//this code fragment is taken from http://stackoverflow.com/a/5284527/683905
     vec4 wave = texture2D(u_heightTexture, a_texCoord);
     float s11 = wave.x;
     float s01 = textureOffset(u_heightTexture, a_texCoord, off.xy).x;
@@ -104,7 +107,7 @@ void main () {
 
 	
 	//height = texture2D(u_heightTexture, a_texCoord).r * 5.0;// * 0.3f;
-	a_Vertex.z += bump.w * 3.0f;
+	a_Vertex.z += bump.w * heightMult;
 	
 	vec4 viewPos = u_ModelViewMatrix * a_Vertex;
 	v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));

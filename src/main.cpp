@@ -24,7 +24,9 @@
 
 // GLOBAL CONSTANTS____________________________________________________________
 //const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "../../common/textures/stone256_height.raw";
-const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/rgb8_interleaved.raw";
+//const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/rgb8_interleaved.raw";
+const char*	  HEIGHTMAP_TEXTURE_FILE_NAME = "data/test_1024.raw";
+const char*	  DIFFUSE_TEXTURE_FILE_NAME = "data/test_1024_diffuse.raw";
 
 const char* VS_TESS_FILE_NAME			= "src/tesselation.vert";
 const char* VS_HIGHLIGHT_FILE_NAME		= "src/highlight.vert";
@@ -62,6 +64,8 @@ GLint g_subtriangles;
 
 GLuint   g_HeightMapTexId    = 0;       // Height texture
 GLsizei  g_NumHeightMapTexels   = 0;    // Number of heigtmap texels
+
+GLuint g_DiffuseTexId = 0;
 
 // GLSL variables
 GLuint g_tesselationProgramId = 0;                 // Shader program id
@@ -183,6 +187,11 @@ void cbDisplay()
 		glBindTexture(GL_TEXTURE_2D, g_HeightMapTexId);
 		glUniform1i(hHeightTex, 1);
 
+		GLuint hDifftTex = glGetUniformLocation(g_tesselationProgramId, "u_diffTexture");
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, g_DiffuseTexId);
+		glUniform1i(hDifftTex, 2);
+
 		
 		//draw call with enough verticies
 		glBindBuffer(GL_ARRAY_BUFFER, emptyVBO);
@@ -199,12 +208,19 @@ void cbDisplay()
 			glGetFloatv(GL_PROJECTION_MATRIX, matrix);
 			glUniformMatrix4fv(glGetUniformLocation(g_highlightProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, matrix);
 
+			hHeightTex = glGetUniformLocation(g_highlightProgramId, "u_heightTexture");
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, g_HeightMapTexId);
+			glUniform1i(hHeightTex, 0);
+
 			glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(0);
 			glDrawArrays(GL_TRIANGLES, 0, 3 * triangleCount);
 			glDisableVertexAttribArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			
 		}
 	}
 
@@ -253,6 +269,9 @@ void cbInitGL()
 	
     // Load heightmap texture from raw-file
     g_HeightMapTexId = prg2LoadRGBTextureFromRawFile(HEIGHTMAP_TEXTURE_FILE_NAME, &g_NumHeightMapTexels);
+
+	//deifuuse texture
+	g_DiffuseTexId = prg2LoadRGBTextureFromRawFile(DIFFUSE_TEXTURE_FILE_NAME);
 
 	assert(g_HeightMapTexId > 0);
 
@@ -462,6 +481,7 @@ void TW_CALL cbGetShaderStatus(void *value, void *clientData)
 {
     *(bool*)(value) = g_UseShaders;
 } 
+
 #else
 bool g_MouseRotationEnabled = false;
 
