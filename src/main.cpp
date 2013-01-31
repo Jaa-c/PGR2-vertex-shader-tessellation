@@ -22,7 +22,7 @@
 #include "../../common/models/cube.h"
 
 #include <iostream>
-
+#include <Windows.h>
 
 using namespace glm;
 
@@ -58,6 +58,7 @@ bool	g_highlightOrig		 = false; //highlight original triangles
 bool	g_freeze			 = false; //freeze tesselation in current location
 
 
+float	 g_fps					= 0;
 
 float	g_maxTessDistance	 = 4.0f;
 
@@ -187,6 +188,11 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 int triangleCount = 0;
 float * triangles = genPlainMesh(10.0, 100, 100, &triangleCount);
 
+/* Additional variables storing timestamps for time measuring */
+long fps_begin, fps_time;
+/* Additional variables for object counting */
+int fpsCounter;
+
 float empty[] = {0};
 //-----------------------------------------------------------------------------
 // Name: cbDisplay()
@@ -201,6 +207,15 @@ void cbDisplay()
 
 	// Update camera transformation matrix
     updateCameraViewMatrix();
+
+	//count FPS
+	fpsCounter++;
+	fps_time = GetTickCount() - fps_begin;
+	if(fps_time > 1000) {
+		g_fps = fpsCounter;
+		fps_begin = GetTickCount();
+		fpsCounter = 0;
+	}
 
     // Turn on programmable pipeline
     if (g_UseShaders)
@@ -455,8 +470,9 @@ void initGUI()
     TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, " group='Tesselation' label='tess. factor' min=1 help='help' ");
 	TwAddVarRW(controlBar, "Max tess. dist.", TW_TYPE_FLOAT, &g_maxTessDistance, " group='Tesselation' label='max tess. dist' min=1 step=0.25 help='Distance from camera where tesselatio ends' ");
 	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tesselation' label='highlight original' key=h help='Highlight original triangles' ");
-	
 	TwAddVarCB(controlBar, "Freeze", TW_TYPE_BOOLCPP, cbFreeze, cbGetFreeze, NULL, " group='Tesselation' label='Freeze tess.' help='freeze tesselation in current point' ");
+	
+	TwAddVarRO(controlBar, "fps", TW_TYPE_FLOAT, &g_fps, " group='INFO' label='Current fps' ");
 	
 #endif
 }

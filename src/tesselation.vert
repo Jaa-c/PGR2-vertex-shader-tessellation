@@ -124,12 +124,11 @@ void main () {
 
 	a_Vertex.y += (bump.w) * heightMult;
 	
+	
 	vec4 viewPos = u_ModelViewMatrix * a_Vertex;
 	v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));
 	
-	v_Vertex = viewPos.xyz;
 	gl_Position = u_ProjectionMatrix * viewPos;
-	//v_Vertex = gl_Position.xyz;
-	//gl_Position = a_Vertex;
+	v_Vertex = gl_Position.xyz;
 
 }
