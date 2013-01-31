@@ -89,7 +89,7 @@
     <None Include="src\highlight.frag" />
     <None Include="src\highlight.vert" />
     <None Include="src\tesselation.frag" />
-    <None Include="src/simple.geom" />
+    <None Include="src\tesselation.geom" />
     <None Include="src\tesselation.vert" />
   </ItemGroup>
   <ItemGroup>

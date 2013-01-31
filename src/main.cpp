@@ -35,7 +35,7 @@ const char*	  DIFFUSE_TEXTURE_FILE_NAME = "data/world_diffuse_8192.raw";
 const char* VS_TESS_FILE_NAME			= "src/tesselation.vert";
 const char* VS_HIGHLIGHT_FILE_NAME		= "src/highlight.vert";
 
-const char* GS_FILE_NAME				= "src/simple.geom";
+const char* GS_FILE_NAME				= "src/tesselation.geom";
 
 const char* FS_TESS_FILE_NAME			= "src/tesselation.frag";
 const char* FS_HIGHLIGHT_FILE_NAME		= "src/highlight.frag";
@@ -50,7 +50,7 @@ bool     g_WireMode          = true;  // Wire mode enabled/disabled
 
 bool     g_UseShaders        = true;  // Programmable pipeline on/off
 bool     g_UseVertexShader   = true;  // Use vertex shader
-bool     g_UseGeometryShader = false;  // Use geometry shader
+bool     g_UseGeometryShader = true;  // Use geometry shader
 bool     g_UseFragmentShader = true;  // Use fragment shader
 
 bool	g_highlightOrig		 = false; //highlight original triangles
@@ -128,7 +128,7 @@ void updateCameraViewMatrix()
     {
         cameraPos[1] = -0.1f;
     }
-
+	
     cameraPosLag += (cameraPos - cameraPosLag) * inertia;
     cameraRotLag += (cameraRot - cameraRotLag) * inertia;
 
@@ -138,7 +138,6 @@ void updateCameraViewMatrix()
 	g_CameraViewMatrix = translate(g_CameraViewMatrix, cameraPosLag);
 
 }
-
 
 
 //plain mesh, no inices
@@ -460,7 +459,7 @@ void initGUI()
 
     // Shader panel setup
     TwAddVarRW(controlBar, "vs", TW_TYPE_BOOLCPP, &g_UseVertexShader, " group='Shaders' label='vertex' key=v help='Toggle vertex shader.' ");
-    //TwAddVarRW(controlBar, "gs", TW_TYPE_BOOLCPP, &g_UseGeometryShader, " group='Shaders' label='geometry' key=g help='Toggle geometry shader.' ");
+    TwAddVarRW(controlBar, "gs", TW_TYPE_BOOLCPP, &g_UseGeometryShader, " group='Shaders' label='geometry' key=g help='Toggle geometry shader.' ");
     TwAddVarRW(controlBar, "fs", TW_TYPE_BOOLCPP, &g_UseFragmentShader, " group='Shaders' label='fragment' key=f help='Toggle fragment shader.' ");
     TwAddButton(controlBar, "build", cbCompileShaderProgram, NULL, " group='Shaders' label='build' key=b help='Build shader program.' ");
 

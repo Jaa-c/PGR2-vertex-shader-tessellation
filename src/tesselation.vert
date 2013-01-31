@@ -11,12 +11,15 @@ uniform vec3 u_freezePos;
 uniform samplerBuffer u_vertexTBO;
 uniform sampler2D u_heightTexture;
 
-out vec3 v_Vertex;
-out vec3 v_Normal;
-out vec2 a_texCoord;
+out block {
+	vec4 v_Vertex;
+	vec3 v_Normal;
+	vec2 v_texCoord;
+} Out;
+
+out int v_discard;
 
 vec4 a_Vertex;
-
 
 const vec2 size = vec2(2.0,0.0);
 const ivec3 off = ivec3(-1,0,1);
@@ -39,9 +42,9 @@ void main () {
 	
 	vec3 origin;
 
-	a_texCoord = ((c.xz/5.0f) * 0.5) + 0.5;
+	Out.v_texCoord = ((c.xz/5.0f) * 0.5) + 0.5;
 
-	float height = texture2D(u_heightTexture, a_texCoord).r * heightMult;
+	float height = texture2D(u_heightTexture, Out.v_texCoord).r * heightMult;
 	c.y += height;
 
 	vec3 d;
@@ -66,69 +69,77 @@ void main () {
 		param = 1 - dist;	
 	}
 
+	
+	
 	int tessFactor = max(int(floor(u_tessFactor * param)), 1);
 	int subTriangles = tessFactor * tessFactor;
-
 	int subTriID = (gl_VertexID / 3) % subTriangles;
 
-	//barycentric coords u, v , w
-	float fRow = floor(sqrt(subTriID));
-	float incuv = 1.0f / tessFactor;
-	float u = (1.0f + fRow) / tessFactor;
-	
-	float fCol = subTriID - (fRow * fRow);
-	int uCol = int(fCol);
-	float v = incuv * floor(fCol * .5f);
-	u-= v;
+	int origSubTriID = (gl_VertexID / 3) % (u_tessFactor*u_tessFactor);
 
-	float w = 1.0f - u - v;
+	if(tessFactor == 1 && origSubTriID > 1) {
+		v_discard = 1;
+	}
+	else { //vypocitame teselaci
+		v_discard = 0;
+
+		//barycentric coords u, v , w
+		float fRow = floor(sqrt(subTriID));
+		float incuv = 1.0f / tessFactor;
+		float u = (1.0f + fRow) / tessFactor;
 	
-	switch(vertexID % 3) {
-		case 0:
-			if((uCol & 1) != 0) {
+		float fCol = subTriID - (fRow * fRow);
+		int uCol = int(fCol);
+		float v = incuv * floor(fCol * .5f);
+		u-= v;
+
+		float w = 1.0f - u - v;
+	
+		switch(vertexID % 3) {
+			case 0:
+				if((uCol & 1) != 0) {
+					v += incuv;
+					u -= incuv;
+				}
+				break;
+			case 1:
 				v += incuv;
 				u -= incuv;
-			}
-			break;
-		case 1:
-			v += incuv;
-			u -= incuv;
-			if((uCol & 1) != 0) {
+				if((uCol & 1) != 0) {
+					w += incuv;
+					u -= incuv;		
+				}
+				break;
+			case 2:
 				w += incuv;
 				u -= incuv;		
-			}
-			break;
-		case 2:
-			w += incuv;
-			u -= incuv;		
-			break;
+				break;
+		}
+
+		a_Vertex = u * v1 + v * v2 + w * v3;
+
+	
+
+		Out.v_texCoord = ((a_Vertex.xz/5.0f) * 0.5) + 0.5;
+
+		//this code fragment is taken from http://stackoverflow.com/a/5284527/683905
+		vec4 wave = texture2D(u_heightTexture, Out.v_texCoord);
+		float s11 = wave.x;
+		float s01 = textureOffset(u_heightTexture, Out.v_texCoord, off.xy).x;
+		float s21 = textureOffset(u_heightTexture, Out.v_texCoord, off.zy).x;
+		float s10 = textureOffset(u_heightTexture, Out.v_texCoord, off.yx).x;
+		float s12 = textureOffset(u_heightTexture, Out.v_texCoord, off.yz).x;
+		vec3 va = normalize(vec3(size.xy,s21-s11));
+		vec3 vb = normalize(vec3(size.yx,s12-s10));
+		vec4 bump = vec4( cross(va,vb), s11 );
+
+
+		a_Vertex.y += (bump.w) * heightMult;
+	
+	
+		vec4 viewPos = u_ModelViewMatrix * a_Vertex;
+		Out.v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));
+	
+		Out.v_Vertex = u_ProjectionMatrix * viewPos;
 	}
-
-	a_Vertex = u * v1 + v * v2 + w * v3;
-
-	
-
-	a_texCoord = ((a_Vertex.xz/5.0f) * 0.5) + 0.5;
-
-	//this code fragment is taken from http://stackoverflow.com/a/5284527/683905
-    vec4 wave = texture2D(u_heightTexture, a_texCoord);
-    float s11 = wave.x;
-    float s01 = textureOffset(u_heightTexture, a_texCoord, off.xy).x;
-    float s21 = textureOffset(u_heightTexture, a_texCoord, off.zy).x;
-    float s10 = textureOffset(u_heightTexture, a_texCoord, off.yx).x;
-    float s12 = textureOffset(u_heightTexture, a_texCoord, off.yz).x;
-    vec3 va = normalize(vec3(size.xy,s21-s11));
-    vec3 vb = normalize(vec3(size.yx,s12-s10));
-    vec4 bump = vec4( cross(va,vb), s11 );
-
-
-	a_Vertex.y += (bump.w) * heightMult;
-	
-	
-	vec4 viewPos = u_ModelViewMatrix * a_Vertex;
-	v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));
-	
-	gl_Position = u_ProjectionMatrix * viewPos;
-	v_Vertex = gl_Position.xyz;
-
 }
