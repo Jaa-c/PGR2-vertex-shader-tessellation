@@ -10,6 +10,7 @@ uniform bool u_freeze;				//flag, if the tesselation is freezed
 uniform vec3 u_freezePos;			//position of tesselation center
 
 uniform samplerBuffer u_vertexTBO;	//vertex data
+uniform isamplerBuffer u_indicesTBO; //indices data
 uniform sampler2D u_heightTexture;	//height texture for displacement mapping
 
 out block {
@@ -30,8 +31,17 @@ void main () {
 
 	int vertexID = ((gl_VertexID / 3) / u_subtriangles) * 3 + (gl_VertexID % 3);
 	int index = (vertexID / 3) * 3; //round to % 3 == 0
+	
+	/*
+	ivec4 i1 = texelFetch(u_indicesTBO, index);
+	ivec4 i2 = texelFetch(u_indicesTBO, index+1);
+	ivec4 i3 = texelFetch(u_indicesTBO, index+2);
 
-	//original triangle verticies	
+	vec4 v1 = texelFetch(u_vertexTBO, i1.r);
+	vec4 v2 = texelFetch(u_vertexTBO, i2.r);
+	vec4 v3 = texelFetch(u_vertexTBO, i3.r);*/
+
+	//original triangle verticies
 	vec4 v1 = texelFetch(u_vertexTBO, index);
 	vec4 v2 = texelFetch(u_vertexTBO, index+1);
 	vec4 v3 = texelFetch(u_vertexTBO, index+2);

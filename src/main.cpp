@@ -21,17 +21,19 @@ using namespace glm;
 #include "declarations.h"
 #include "controls.h"
 
+
+
 //plain mesh, no inices
 float* genPlainMesh(float size, int width, int height, int * count) {
-	
 	*count = width*height*2;
+
 	float* vert = new float[width*height*3*6];
-	
+
 	const float xd = size / (float) width;
 	const float yd = xd;
-	
-    const float startX = -size * 0.5f;
-    const float startY = -size * 0.5f;
+
+	const float startX = -size * 0.5f;
+	const float startY = -size * 0.5f;
 
 	float* ptr = vert;
 	for(int x = 0; x < width; x++) {
@@ -61,9 +63,10 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 			*ptr++ = startY + (y+1) * yd;
 		}
 	}
-	
-	return vert;
+
+return vert;
 }
+
 
 
 void cbDisplay()
@@ -105,26 +108,26 @@ void cbDisplay()
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_freeze"), g_freeze);
 		glUniform3fv(glGetUniformLocation(g_tesselationProgramId, "u_freezePos"), 1, &g_freezePos.x);
 
-		//vertex data in texture memory
-		//glBindBuffer(GL_TEXTURE_BUFFER, vertexTBO);
-		//glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
-		//glBindBuffer(GL_TEXTURE_BUFFER, 0);
+		//GLuint hIndicesTex = glGetUniformLocation(g_tesselationProgramId, "u_indicesTBO");
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_BUFFER, indicesTBO);
+		//glUniform1i(hIndicesTex, 0);
 
 		GLuint hVertTex = glGetUniformLocation(g_tesselationProgramId, "u_vertexTBO");
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, vertexTBO);
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
-		glUniform1i(hVertTex, 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_BUFFER, vertexTBO);
+		glUniform1i(hVertTex, 1);
+		
 
 		GLuint hHeightTex = glGetUniformLocation(g_tesselationProgramId, "u_heightTexture");
-		glActiveTexture(GL_TEXTURE1);
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, g_HeightMapTexId);
-		glUniform1i(hHeightTex, 1);
+		glUniform1i(hHeightTex, 2);
 
 		GLuint hDifftTex = glGetUniformLocation(g_tesselationProgramId, "u_diffTexture");
-		glActiveTexture(GL_TEXTURE2);
+		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, g_DiffuseTexId);
-		glUniform1i(hDifftTex, 2);
+		glUniform1i(hDifftTex, 3);
 
 		
 		//draw call with enough verticies
@@ -164,8 +167,9 @@ void cbDisplay()
 
 void cbInitGL()
 {
-	
+
 	triangles = genPlainMesh(10.0, 100, 50, &triangleCount);
+
 	//max factor, that produces less vertices than max_vertices
 	int max_tesselation_factor = sqrt((max_vertices / (float) triangleCount)); 
 
@@ -176,16 +180,23 @@ void cbInitGL()
     glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 
-
-	//texture buffer with vertex coordinates for random acces
-	glGenTextures(1, &vertexTBO);
-
-	//meshTriangles = pgr2CreatePlaneMesh(2.0f, 10, 10, &triangleCount);
-
 	//buffer with original triangles
 	glGenBuffers(1, &originalTrianglesVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, originalTrianglesVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * triangleCount, triangles, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * triangleCount * 9, triangles, GL_STATIC_DRAW);
+	
+	//glGenBuffers(1, &indicesVBO);
+	//glBindBuffer(GL_ARRAY_BUFFER, indicesVBO);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(int) * 5000 * 6, indices, GL_STATIC_DRAW);
+
+	//texture buffer with vertex coordinates for random acces
+	glGenTextures(1, &vertexTBO);
+	glBindTexture(GL_TEXTURE_BUFFER, vertexTBO);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, originalTrianglesVBO);
+
+	glGenTextures(1, &indicesTBO);
+	glBindTexture(GL_TEXTURE_BUFFER, indicesTBO);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_R16I, indicesVBO);
 
 
 	//empty vertex buffer, using only for vertexID
@@ -299,15 +310,22 @@ void TW_CALL cbGetShaderStatus(void *value, void *clientData)
     *(bool*)(value) = g_UseShaders;
 } 
 
+void freeMemory() {
+	delete[] indices;
+	delete[] triangles;
+}
+
 int main(int argc, char* argv[]) 
 {
-    return common_main(g_WindowWidth, g_WindowHeight,
-                       "[PGR2] Vertex shader tesselation",
-                       cbInitGL,              // init GL callback function
-                       cbDisplay,             // display callback function
-                       cbWindowSizeChanged,   // window resize callback function
-                       cbKeyboardChanged,     // keyboard callback function
-                       cbMouseButtonChanged,  // mouse button callback function
-                       cbMousePositionChanged // mouse motion callback function
-                       );
+    int r = common_main(g_WindowWidth, g_WindowHeight,
+                    "[PGR2] Vertex shader tesselation",
+                    cbInitGL,              // init GL callback function
+                    cbDisplay,             // display callback function
+                    cbWindowSizeChanged,   // window resize callback function
+                    cbKeyboardChanged,     // keyboard callback function
+                    cbMouseButtonChanged,  // mouse button callback function
+                    cbMousePositionChanged // mouse motion callback function
+                    );
+	freeMemory();
+	return r;
 }

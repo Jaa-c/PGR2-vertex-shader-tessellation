@@ -47,9 +47,19 @@ void initGUI(int max_tess_fact)
  */
 void updateCameraViewMatrix() {
 	//camera alway above the ground
-    if (cameraPos[1] > -0.1f) {
-        cameraPos[1] = -0.1f;
+    if (cameraPos.y > -0.1f) {
+        cameraPos.y = -0.1f;
     }
+
+	if(cameraPos.x > 5.0f) {
+		cameraPos.x = -5.0f;
+		cameraPosLag.x = -5.0f - inertia;
+	}
+	if(cameraPos.x < -5.0f) {
+		cameraPos.x = 5.0f;
+		cameraPosLag.x = 5.0f + inertia;
+	}
+
 	//camera inertia
     cameraPosLag += (cameraPos - cameraPosLag) * inertia;
     cameraRotLag += (cameraRot - cameraRotLag) * inertia;

@@ -43,8 +43,9 @@ mat4	g_CameraViewMatrix;           // Camera view transformation
 //Buffer IDs
 GLuint	emptyVBO				= 0;
 GLuint	originalTrianglesVBO	= 0;
-GLuint	originalTrianglesIBO	= 0;
 GLuint	vertexTBO				= 0;
+GLuint	indicesTBO				= 0;
+GLuint	indicesVBO				= 0;
 GLuint	textureBO				= 0;
 
 //texture IDs
@@ -63,9 +64,9 @@ vec3	cameraRotLag(cameraRot);
 
 //view params (mouse)
 int ox, oy;
-const	float inertia			= 0.1f;  //mouse inertia
-const	float rotateSpeed		= 0.4f;  //mouse rotate speed (sensitivity)
-const	float walkSpeed			= 0.02f; //walking speed (wasd)
+const float inertia			= 0.1f;  //mouse inertia
+const float rotateSpeed		= 0.4f;  //mouse rotate speed (sensitivity)
+const float walkSpeed			= 0.02f; //walking speed (wasd)
 
 const	vec3 lightPos(0.0f, 10.0f, 0.0f);//Light position
 
@@ -73,6 +74,8 @@ vec3	g_freezePos(cameraPos);		  //current freeze position
 
 float*	triangles				= 0;  //pointer to mesh
 int		triangleCount			= 0;  //number of triangles to draw
+
+int * indices;
 
 const int max_vertices			= 10000000; //max number of vertices, that can be produced by tesselation 
 
