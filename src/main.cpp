@@ -1,4 +1,3 @@
-//----------------------------------------------------------------------------------------
 /**
  * @file       main.cpp
  * @author     Daniel Princ
@@ -7,8 +6,9 @@
  *
  *  [PGR2] Vertex shader tesselation
  *
-*/
-//----------------------------------------------------------------------------------------
+ */
+
+
 #define USE_ANTTWEAKBAR
 
 #include "../../common/common.h"
@@ -172,9 +172,7 @@ void cbInitGL()
     // Init app GUI
     initGUI(max_tesselation_factor);
 
-    // Set OpenGL state variables
     glClearColor(0.4f, 0.4f, 0.7f, 0);
-
     glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 

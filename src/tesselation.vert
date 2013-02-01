@@ -20,7 +20,6 @@ out block {
 
 out int v_discard;					//if not 0, vertex is dicarded on geometry shader
 
-
 const float heightMult = 0.1f;		//height correction in height map
 const float minDistance = 0.5;		//minimal distance, where tesselation has always maximal factor
 
@@ -76,7 +75,6 @@ void main () {
 	//if all triangles have been created, we discard the remaining verticies (on geometry shader)
 	if(tessFactor != u_tessFactor && origSubTriID > subTriangles) {
 		v_discard = 1;
-		//Out.v_Position = vec4(1000, 1000, 1000, 1.0);
 	}
 	else { //otherwise, we compute vertex coordiantes
 		v_discard = 0;

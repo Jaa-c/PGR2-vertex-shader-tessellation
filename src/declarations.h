@@ -3,6 +3,7 @@
  * @brief	This file contans all global variables
  */
 
+
 // GLOBAL CONSTANTS____________________________________________________________
 const char*	HEIGHTMAP_TEXTURE_FILE_NAME = "data/world_height_8192.raw";
 const char*	DIFFUSE_TEXTURE_FILE_NAME	= "data/world_diffuse_8192.raw";
@@ -63,7 +64,7 @@ vec3	cameraRotLag(cameraRot);
 //view params (mouse)
 int ox, oy;
 const	float inertia			= 0.1f;  //mouse inertia
-const	float rotateSpeed		= 0.5f;  //mouse rotate speed (sensitivity)
+const	float rotateSpeed		= 0.4f;  //mouse rotate speed (sensitivity)
 const	float walkSpeed			= 0.02f; //walking speed (wasd)
 
 const	vec3 lightPos(0.0f, 10.0f, 0.0f);//Light position
