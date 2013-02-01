@@ -1,89 +1,86 @@
-#version 330
+#version 330 core
 
-uniform mat4 u_ModelViewMatrix; 
-uniform mat4 u_ProjectionMatrix;
-uniform int u_subtriangles;
-uniform int u_tessFactor;
-uniform float u_maxTessDistance;
-uniform bool u_freeze;
-uniform vec3 u_freezePos;
+uniform mat4 u_ModelViewMatrix;
 
-uniform samplerBuffer u_vertexTBO;
-uniform sampler2D u_heightTexture;
+uniform int u_tessFactor;			//tesselation factor
+uniform int u_subtriangles;			//number of produced triangles (tesselation factor square)
+uniform float u_maxTessDistance;	//behind this distance, no tesselation is done
+
+uniform bool u_freeze;				//flag, if the tesselation is freezed
+uniform vec3 u_freezePos;			//position of tesselation center
+
+uniform samplerBuffer u_vertexTBO;	//vertex data
+uniform sampler2D u_heightTexture;	//height texture for displacement mapping
 
 out block {
-	vec4 v_Vertex;
-	vec3 v_Normal;
-	vec2 v_texCoord;
+	vec4 v_Position;				//position in object space
+	vec3 v_Normal;					//normal in object space
+	vec2 v_texCoord;				//texture coordinates
 } Out;
 
-out int v_discard;
+out int v_discard;					//if not 0, vertex is dicarded on geometry shader
 
-vec4 a_Vertex;
 
-const vec2 size = vec2(2.0,0.0);
-const ivec3 off = ivec3(-1,0,1);
+const float heightMult = 0.1f;		//height correction in height map
+const float minDistance = 0.5;		//minimal distance, where tesselation has always maximal factor
 
-const float heightMult = 0.1f;
-float minDistance = 0.5;
+const ivec3 off = ivec3(-1, 0, 1); 	//offsets for normals computation
+const vec2 size = vec2(2.0, 0.0);
 
 void main () {
 
-	//first find distance from camera	
 	int vertexID = ((gl_VertexID / 3) / u_subtriangles) * 3 + (gl_VertexID % 3);
-
 	int index = (vertexID / 3) * 3; //round to % 3 == 0
+
 	//original triangle verticies	
 	vec4 v1 = texelFetch(u_vertexTBO, index);
 	vec4 v2 = texelFetch(u_vertexTBO, index+1);
 	vec4 v3 = texelFetch(u_vertexTBO, index+2);
 
-	vec4 c = (v1 + v2 + v3) / 3;
-	
-	vec3 origin;
+	vec4 c = (v1 + v2 + v3) / 3; //centroid of the original triangle
 
-	Out.v_texCoord = ((c.xz/5.0f) * 0.5) + 0.5;
+	vec2 texCoord = ((c.xz/5.0f) * 0.5) + 0.5; //centroid coordinates in height texture
+	texCoord.y += 0.25;
 
-	float height = texture2D(u_heightTexture, Out.v_texCoord).r * heightMult;
-	c.y += height;
+	c.y = texture2D(u_heightTexture, texCoord).r * heightMult;//correct centroid height
 
-	vec3 d;
+	//calculate the distance of tesselation centre from centroid
+	vec3 d; 
 	if(u_freeze) {
-		d = c.xyz + u_freezePos;
+		d = c.xyz + u_freezePos; //distance from freezed point (in object space)
 	}
 	else {
-		vec4 viewC = u_ProjectionMatrix * u_ModelViewMatrix * c;
-		d = viewC.xyz;
+		vec4 viewC = u_ModelViewMatrix * c;
+		d = viewC.xyz; //distance from camera (in eye space)
 	}
-	float dist = sqrt(d.x * d.x + d.y * d.y + d.z * d.z); 
-			
-	//float param = min(1.0f/(dist/1.5f), 1.0f);//2
 
-	float param;
+	float dist = sqrt(d.x * d.x + d.y * d.y + d.z * d.z); //the final distance
+
+	//compute the final adaptive tesselation factor
+	int tessFactor, subTriangles;
 	if(dist < minDistance) {
-		param = 1;
+		tessFactor = u_tessFactor;
+		subTriangles = u_subtriangles;
 	}
 	else {
 		dist -= minDistance;
 		dist /= (u_maxTessDistance - minDistance);
-		param = 1 - dist;	
+
+		tessFactor = max(int(floor(u_tessFactor * (1 - dist))), 1);
+		subTriangles = tessFactor * tessFactor;
 	}
 
-	
-	
-	int tessFactor = max(int(floor(u_tessFactor * param)), 1);
-	int subTriangles = tessFactor * tessFactor;
-	int subTriID = (gl_VertexID / 3) % subTriangles;
+	int subTriID = (gl_VertexID / 3) % subTriangles; //ID of the subtriangle with new factor
+	int origSubTriID = (gl_VertexID / 3) % (u_subtriangles); //ID of the subtriangle with old factor
 
-	int origSubTriID = (gl_VertexID / 3) % (u_tessFactor*u_tessFactor);
-
-	if(tessFactor == 1 && origSubTriID > 1) {
+	//if all triangles have been created, we discard the remaining verticies (on geometry shader)
+	if(tessFactor != u_tessFactor && origSubTriID > subTriangles) {
 		v_discard = 1;
 	}
-	else { //vypocitame teselaci
+	else { //otherwise, we compute vertex coordiantes
 		v_discard = 0;
 
-		//barycentric coords u, v , w
+		//barycentric coords u, v, w
 		float fRow = floor(sqrt(subTriID));
 		float incuv = 1.0f / tessFactor;
 		float u = (1.0f + fRow) / tessFactor;
@@ -116,30 +113,26 @@ void main () {
 				break;
 		}
 
-		a_Vertex = u * v1 + v * v2 + w * v3;
+		//this is the vertex position 
+		vec4 vertex = u * v1 + v * v2 + w * v3;
+		
+		Out.v_texCoord = ((vertex.xz/5.0f) * 0.5f) + 0.5f; //coordinates in the textures
+		Out.v_texCoord.y += 0.25;
 
-	
-
-		Out.v_texCoord = ((a_Vertex.xz/5.0f) * 0.5) + 0.5;
-
-		//this code fragment is taken from http://stackoverflow.com/a/5284527/683905
+		//the following code fragment is taken from http://stackoverflow.com/a/5284527/683905
+		//it computes normals from the height map
 		vec4 wave = texture2D(u_heightTexture, Out.v_texCoord);
-		float s11 = wave.x;
 		float s01 = textureOffset(u_heightTexture, Out.v_texCoord, off.xy).x;
 		float s21 = textureOffset(u_heightTexture, Out.v_texCoord, off.zy).x;
 		float s10 = textureOffset(u_heightTexture, Out.v_texCoord, off.yx).x;
 		float s12 = textureOffset(u_heightTexture, Out.v_texCoord, off.yz).x;
-		vec3 va = normalize(vec3(size.xy,s21-s11));
-		vec3 vb = normalize(vec3(size.yx,s12-s10));
-		vec4 bump = vec4( cross(va,vb), s11 );
+		vec3 va = normalize(vec3(size.x, s21-s01, size.y));
+		vec3 vb = normalize(vec3(size.y, s12-s10, -size.x));
+		vec4 bump = vec4(cross(va,vb), wave.x);
 
-
-		a_Vertex.y += (bump.w) * heightMult;
+		vertex.y += (bump.w) * heightMult; //final vertex position
 	
-	
-		vec4 viewPos = u_ModelViewMatrix * a_Vertex;
-		Out.v_Normal = mat3(u_ModelViewMatrix) * bump.xyz;//normalize(mat3(u_ModelViewMatrix) * vec3(0, 0, 1.0));
-	
-		Out.v_Vertex = u_ProjectionMatrix * viewPos;
+		Out.v_Position = vertex;
+		Out.v_Normal = normalize(bump.xyz);
 	}
 }

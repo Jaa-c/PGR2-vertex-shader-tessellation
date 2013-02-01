@@ -91,11 +91,12 @@ GLuint g_highlightProgramId = 0;				   // Shader program id
 
 
 ///moving and stuff
-vec3 cameraPos(0.0f, -1.0f, -4.0f);
+vec3 cameraPos(0.0f, -1.0f, -1.0f);
 vec3 cameraRot(0.0f, 0.0f, 0.0f);
 vec3 cameraPosLag(cameraPos);
 vec3 cameraRotLag(cameraRot);
 
+const vec3 lightPos(0.0f, 10.0f, 0.0f);
 
 vec3	g_freezePos(cameraPos);
 // view params
@@ -147,7 +148,7 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 	float* vert = new float[width*height*3*6];
 	
 	const float xd = size / (float) width;
-	const float yd = size / (float) height;
+	const float yd = xd;
 	
     const float startX = -size * 0.5f;
     const float startY = -size * 0.5f;
@@ -185,7 +186,7 @@ float* genPlainMesh(float size, int width, int height, int * count) {
 }
 
 int triangleCount = 0;
-float * triangles = genPlainMesh(10.0, 100, 100, &triangleCount);
+float * triangles = genPlainMesh(10.0, 100, 50, &triangleCount);
 
 /* Additional variables storing timestamps for time measuring */
 long fps_begin, fps_time;
@@ -216,6 +217,7 @@ void cbDisplay()
 		fpsCounter = 0;
 	}
 
+
     // Turn on programmable pipeline
     if (g_UseShaders)
     {
@@ -228,6 +230,7 @@ void cbDisplay()
 		glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
 		
+		glUniform3fv(glGetUniformLocation(g_tesselationProgramId, "u_lightPos"), 1, &lightPos.x);
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_subtriangles"), g_subtriangles);
 		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
 		glUniform1f(glGetUniformLocation(g_tesselationProgramId, "u_maxTessDistance"), g_maxTessDistance);
@@ -368,9 +371,6 @@ void TW_CALL cbCompileShaderProgram(void *clientData)
         GLuint id = pgr2CreateShaderFromFile(GL_GEOMETRY_SHADER, GS_FILE_NAME);
         glAttachShader(g_tesselationProgramId, id);
         glDeleteShader(id);
-        glProgramParameteriEXT(g_tesselationProgramId, GL_GEOMETRY_VERTICES_OUT_EXT, 6);
-        glProgramParameteriEXT(g_tesselationProgramId, GL_GEOMETRY_INPUT_TYPE_EXT, GL_TRIANGLES);
-        glProgramParameteriEXT(g_tesselationProgramId, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
     }
     if (g_UseFragmentShader)
     {

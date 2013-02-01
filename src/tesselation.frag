@@ -1,28 +1,22 @@
-#version 330
+#version 330 core
+
+uniform sampler2D u_diffTexture;
+uniform vec3 u_lightPos;
 
 in block {
-	vec4 v_Vertex;
+	vec4 v_Position;
 	vec3 v_Normal;
 	vec2 v_texCoord;
 } In;
 
 out vec4 v_FragColor;
 
-uniform sampler2D u_diffTexture;
-
-const vec3 light_pos = vec3(0.0, 1.0, 0.0);
-
 void main() {
 
-	vec3 N = In.v_Normal;
-	vec3 L = normalize(light_pos - In.v_Vertex.xyz);
-	float diffuse = max(dot(N, L), 0.0);
-	
-	//vec3 E = normalize(v_Vertex);
-	//vec3 R = normalize(reflect(L, -N));
-	//float specular = pow(max(dot(R, E), 0.0), 32.0);
+	vec3 L = normalize(u_lightPos - In.v_Position.xyz);
+	float diffuse = max(dot(In.v_Normal, L), 0.0);
 
-	vec3 color = texture2D(u_diffTexture, In.v_texCoord).xyz;// * diffuse;
+	vec3 color = texture2D(u_diffTexture, In.v_texCoord).xyz * diffuse;
 	
 	v_FragColor = vec4(color, 1.0);
 }
