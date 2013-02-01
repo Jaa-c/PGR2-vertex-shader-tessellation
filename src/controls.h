@@ -7,7 +7,7 @@
 /**
  * Items in AntTweakBar control menu
  */
-void initGUI()
+void initGUI(int max_tess_fact)
 {
     // Initialize AntTweakBar GUI
     if (!TwInit(TW_OPENGL, NULL))
@@ -30,7 +30,9 @@ void initGUI()
     // Render panel setup
     TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='wire mode' key=r help='Toggle wire mode.' ");
 
-    TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, " group='Tesselation' label='tess. factor' min=1 help='help' ");
+	std::ostringstream oss;
+	oss << " group='Tesselation' label='tess. factor' min=1 max=" << max_tess_fact << " help='help'";
+    TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, oss.str().c_str());
 	TwAddVarRW(controlBar, "Tess. distance", TW_TYPE_FLOAT, &g_maxTessDistance, " group='Tesselation' label='max tess. dist' min=1 step=0.25 help='Distance from camera where tesselatio ends' ");
 	TwAddVarCB(controlBar, "Freeze", TW_TYPE_BOOLCPP, cbFreeze, cbGetFreeze, NULL, " group='Tesselation' label='Freeze tess.' key=f help='freeze tesselation in current point' ");
 	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tesselation' label='Highlight grid' key=h help='Highlight original triangles' ");

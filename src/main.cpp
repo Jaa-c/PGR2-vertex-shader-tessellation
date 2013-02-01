@@ -12,16 +12,14 @@
 #define USE_ANTTWEAKBAR
 
 #include "../../common/common.h"
-#include "../../common/models/elephant.h"
-#include "../../common/models/cube.h"
 
 #include <iostream>
+#include <sstream>
 #include <Windows.h>
 
 using namespace glm;
 #include "declarations.h"
 #include "controls.h"
-
 
 //plain mesh, no inices
 float* genPlainMesh(float size, int width, int height, int * count) {
@@ -166,9 +164,13 @@ void cbDisplay()
 
 void cbInitGL()
 {
+	
+	triangles = genPlainMesh(10.0, 100, 50, &triangleCount);
+	//max factor, that produces less vertices than max_vertices
+	int max_tesselation_factor = sqrt((max_vertices / (float) triangleCount)); 
 
     // Init app GUI
-    initGUI();
+    initGUI(max_tesselation_factor);
 
     // Set OpenGL state variables
     glClearColor(0.4f, 0.4f, 0.7f, 0);
@@ -176,7 +178,6 @@ void cbInitGL()
     glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 
-	triangles = genPlainMesh(10.0, 100, 50, &triangleCount);
 
 	//texture buffer with vertex coordinates for random acces
 	glGenTextures(1, &vertexTBO);

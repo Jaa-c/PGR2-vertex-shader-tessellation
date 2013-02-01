@@ -73,6 +73,8 @@ vec3	g_freezePos(cameraPos);		  //current freeze position
 float*	triangles				= 0;  //pointer to mesh
 int		triangleCount			= 0;  //number of triangles to draw
 
+const int max_vertices			= 10000000; //max number of vertices, that can be produced by tesselation 
+
 long	fps_begin, fps_time;		  //Additional variables storing timestamps for time measuring
 int		fpsCounter				= 0;  //FPS measurment
 
