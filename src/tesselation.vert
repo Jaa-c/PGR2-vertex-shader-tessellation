@@ -76,6 +76,7 @@ void main () {
 	//if all triangles have been created, we discard the remaining verticies (on geometry shader)
 	if(tessFactor != u_tessFactor && origSubTriID > subTriangles) {
 		v_discard = 1;
+		//Out.v_Position = vec4(1000, 1000, 1000, 1.0);
 	}
 	else { //otherwise, we compute vertex coordiantes
 		v_discard = 0;

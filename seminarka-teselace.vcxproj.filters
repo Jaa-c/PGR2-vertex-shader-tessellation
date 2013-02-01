@@ -10,4 +10,8 @@
   <ItemGroup>
     <ClCompile Include="src/main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\declarations.h" />
+    <ClInclude Include="src\controls.h" />
+  </ItemGroup>
 </Project>
