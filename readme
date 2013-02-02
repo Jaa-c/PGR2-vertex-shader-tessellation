@@ -1,0 +1,15 @@
+Seminar work on CTU FEE, in course A4M39PGR2 - graphics in openGL.
+This project is an implementation of adaptive tessellation on vertex shader, no 
+tessellation shader is involved. Tessellation is defined by a tessellation factor 
+(factor of n produces n^2 triangles from the original one) and also by maximum 
+tessellation distance. The factor is linearly interpolated between camera position 
+(maximum factor) and maximum distance (factor 1).
+
+Credits:
+
+Basic tessellation algorithm
+  - GPU PRO 3, Advanced Rendering Techniques,A K Peters/CRC Press 2012
+  - Chapter 1 - Vertex shader tessellation, Holger Gruen
+
+Textures 
+  - NASA - http://visibleearth.nasa.gov/view_cat.php?categoryID=1484&p=1

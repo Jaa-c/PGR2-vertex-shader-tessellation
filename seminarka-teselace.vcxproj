@@ -88,9 +88,9 @@
   <ItemGroup>
     <None Include="src\highlight.frag" />
     <None Include="src\highlight.vert" />
-    <None Include="src\tesselation.frag" />
-    <None Include="src\tesselation.geom" />
-    <None Include="src\tesselation.vert" />
+    <None Include="src\tessellation.frag" />
+    <None Include="src\tessellation.geom" />
+    <None Include="src\tessellation.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/main.cpp" />

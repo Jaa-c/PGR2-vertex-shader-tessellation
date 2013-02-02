@@ -5,8 +5,8 @@
 
 
 // GLOBAL CONSTANTS____________________________________________________________
-const char*	HEIGHTMAP_TEXTURE_FILE_NAME = "data/world_height_8192.raw";
-const char*	DIFFUSE_TEXTURE_FILE_NAME	= "data/world_diffuse_8192.raw";
+const char*	HEIGHTMAP_TEXTURE_FILE_NAME = "data/world_height_1024.raw";
+const char*	DIFFUSE_TEXTURE_FILE_NAME	= "data/world_diffuse_1024.raw";
 
 const char*	VS_TESS_FILE_NAME			= "src/tessellation.vert";
 const char*	GS_FILE_NAME				= "src/tessellation.geom";
@@ -16,8 +16,8 @@ const char*	VS_HIGHLIGHT_FILE_NAME		= "src/highlight.vert";
 const char*	FS_HIGHLIGHT_FILE_NAME		= "src/highlight.frag";
 
 // GLOBAL VARIABLES____________________________________________________________
-GLint    g_WindowWidth       = 1280;    // Window width
-GLint    g_WindowHeight      = 720;    // Window height
+GLint    g_WindowWidth       = 800;    // Window width
+GLint    g_WindowHeight      = 600;    // Window height
 
 bool     g_UseShaders        = true;  // Programmable pipeline on/off
 bool     g_UseVertexShader   = true;  // Use vertex shader
