@@ -17,25 +17,25 @@ void initGUI(int max_tess_fact)
 
     TwWindowSize(g_WindowWidth, g_WindowHeight);
     TwBar *controlBar = TwNewBar("Controls");
-    TwDefine(" Controls position='10 10' size='200 300' refresh=0.1 ");
+    TwDefine(" Controls position='10 10' size='220 220' refresh=0.1 ");
 
-    TwAddVarCB(controlBar, "use_shaders", TW_TYPE_BOOLCPP, cbSetShaderStatus, cbGetShaderStatus, NULL, " label='shaders' key=q help='Turn programmable pipeline on/off.' ");
+    TwAddVarCB(controlBar, "use_shaders", TW_TYPE_BOOLCPP, cbSetShaderStatus, cbGetShaderStatus, NULL, " label='Shaders' key=q help='Turn programmable pipeline on/off.' ");
 
     // Shader panel setup
-    TwAddVarRO(controlBar, "vs", TW_TYPE_BOOLCPP, &g_UseVertexShader, " group='Shaders' label='vertex' help='Toggle vertex shader.' ");
-    TwAddVarRO(controlBar, "gs", TW_TYPE_BOOLCPP, &g_UseGeometryShader, " group='Shaders' label='geometry' help='Toggle geometry shader.' ");
-    TwAddVarRO(controlBar, "fs", TW_TYPE_BOOLCPP, &g_UseFragmentShader, " group='Shaders' label='fragment'  help='Toggle fragment shader.' ");
-    TwAddButton(controlBar, "build", cbCompileShaderProgram, NULL, " group='Shaders' label='build' help='Build shader program.' ");
+    //TwAddVarRO(controlBar, "vs", TW_TYPE_BOOLCPP, &g_UseVertexShader, " group='Shaders' label='vertex' help='Toggle vertex shader.' ");
+    //TwAddVarRO(controlBar, "gs", TW_TYPE_BOOLCPP, &g_UseGeometryShader, " group='Shaders' label='geometry' help='Toggle geometry shader.' ");
+    //TwAddVarRO(controlBar, "fs", TW_TYPE_BOOLCPP, &g_UseFragmentShader, " group='Shaders' label='fragment'  help='Toggle fragment shader.' ");
+    TwAddButton(controlBar, "build", cbCompileShaderProgram, NULL, "label='Build shaders' help='Build shader program.' ");
 
     // Render panel setup
-    TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='wire mode' key=r help='Toggle wire mode.' ");
+    TwAddVarRW(controlBar, "wiremode", TW_TYPE_BOOLCPP, &g_WireMode, " group='Render' label='Wire mode' key=r help='Toggle wire mode.' ");
 
 	std::ostringstream oss;
-	oss << " group='Tesselation' label='tess. factor' min=1 max=" << max_tess_fact << " help='help'";
-    TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tesselationFactor, oss.str().c_str());
-	TwAddVarRW(controlBar, "Tess. distance", TW_TYPE_FLOAT, &g_maxTessDistance, " group='Tesselation' label='max tess. dist' min=1 step=0.25 help='Distance from camera where tesselatio ends' ");
-	TwAddVarCB(controlBar, "Freeze", TW_TYPE_BOOLCPP, cbFreeze, cbGetFreeze, NULL, " group='Tesselation' label='Freeze tess.' key=f help='freeze tesselation in current point' ");
-	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tesselation' label='Highlight grid' key=h help='Highlight original triangles' ");
+	oss << " group='Tessellation' label='Tess. factor' min=1 max=" << max_tess_fact << " help='help'";
+    TwAddVarRW(controlBar, "Tess. factor", TW_TYPE_INT32, &g_tessellationFactor, oss.str().c_str());
+	TwAddVarRW(controlBar, "Tess. distance", TW_TYPE_FLOAT, &g_maxTessDistance, " group='Tessellation' label='Tess. distance' min=1 step=0.25 help='Distance from camera where tessellatio ends' ");
+	TwAddVarCB(controlBar, "Freeze", TW_TYPE_BOOLCPP, cbFreeze, cbGetFreeze, NULL, " group='Tessellation' label='Freeze tess.' key=f help='freeze tessellation in current point' ");
+	TwAddVarRW(controlBar, "Highlight", TW_TYPE_BOOLCPP, &g_highlightOrig, " group='Tessellation' label='Highlight grid' key=h help='Highlight original triangles' ");
 	
 	TwAddVarRO(controlBar, "fps", TW_TYPE_FLOAT, &g_fps, " group='INFO' label='Current fps' ");
 }

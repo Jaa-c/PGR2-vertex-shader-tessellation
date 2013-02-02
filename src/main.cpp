@@ -4,14 +4,14 @@
  * @date       2012/02/03 
  * @brief	   Handles openGL stuff, shaders
  *
- *  [PGR2] Vertex shader tesselation
+ *  [PGR2] Vertex shader tessellation
  *
  * Controls:
  *   [wasd] - moving in the sscene
  *   [mouse left button] - rotate the scene
  *   [r] - toggle wire mode
  *   [h] - highligt original triangles
- *   [f] - freeze adaptive tesselation in current camera position
+ *   [f] - freeze adaptive tessellation in current camera position
  *
  */
 
@@ -22,7 +22,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <Windows.h>
+#include <Windows.h> //GetTickCount
 
 using namespace glm;
 #include "declarations.h"
@@ -52,40 +52,40 @@ void cbDisplay()
     // Turn on programmable pipeline
     if (g_UseShaders)
     {
-        glUseProgram(g_tesselationProgramId);    // Active shader program
+        glUseProgram(g_tessellationProgramId);    // Active shader program
 
-		g_subtriangles = g_tesselationFactor * g_tesselationFactor;
+		g_subtriangles = g_tessellationFactor * g_tessellationFactor;
 				
 		//modelview and projection matrix
-		glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
-        glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
+		glUniformMatrix4fv(glGetUniformLocation(g_tessellationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(g_tessellationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
 		
-		glUniform3fv(glGetUniformLocation(g_tesselationProgramId, "u_lightPos"), 1, &lightPos.x);
-		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_subtriangles"), g_subtriangles);
-		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_tessFactor"), g_tesselationFactor);
-		glUniform1f(glGetUniformLocation(g_tesselationProgramId, "u_maxTessDistance"), g_maxTessDistance);
-		glUniform1i(glGetUniformLocation(g_tesselationProgramId, "u_freeze"), g_freeze);
-		glUniform3fv(glGetUniformLocation(g_tesselationProgramId, "u_freezePos"), 1, &g_freezePos.x);
+		glUniform3fv(glGetUniformLocation(g_tessellationProgramId, "u_lightPos"), 1, &lightPos.x);
+		glUniform1i(glGetUniformLocation(g_tessellationProgramId, "u_subtriangles"), g_subtriangles);
+		glUniform1i(glGetUniformLocation(g_tessellationProgramId, "u_tessFactor"), g_tessellationFactor);
+		glUniform1f(glGetUniformLocation(g_tessellationProgramId, "u_maxTessDistance"), g_maxTessDistance);
+		glUniform1i(glGetUniformLocation(g_tessellationProgramId, "u_freeze"), g_freeze);
+		glUniform3fv(glGetUniformLocation(g_tessellationProgramId, "u_freezePos"), 1, &g_freezePos.x);
 
-		//GLuint hIndicesTex = glGetUniformLocation(g_tesselationProgramId, "u_indicesTBO");
+		//GLuint hIndicesTex = glGetUniformLocation(g_tessellationProgramId, "u_indicesTBO");
 		//glActiveTexture(GL_TEXTURE0);
 		//glBindTexture(GL_TEXTURE_BUFFER, indicesTBO);
 		//glUniform1i(hIndicesTex, 0);
 		
 		//vertex data
-		GLuint hVertTex = glGetUniformLocation(g_tesselationProgramId, "u_vertexTBO");
+		GLuint hVertTex = glGetUniformLocation(g_tessellationProgramId, "u_vertexTBO");
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_BUFFER, vertexTBO);
 		glUniform1i(hVertTex, 1);
 
 		//height map
-		GLuint hHeightTex = glGetUniformLocation(g_tesselationProgramId, "u_heightTexture");
+		GLuint hHeightTex = glGetUniformLocation(g_tessellationProgramId, "u_heightTexture");
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, g_HeightMapTexId);
 		glUniform1i(hHeightTex, 2);
 
 		//diffuse texture
-		GLuint hDifftTex = glGetUniformLocation(g_tesselationProgramId, "u_diffTexture");
+		GLuint hDifftTex = glGetUniformLocation(g_tessellationProgramId, "u_diffTexture");
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, g_DiffuseTexId);
 		glUniform1i(hDifftTex, 3);
@@ -100,8 +100,8 @@ void cbDisplay()
 			glUseProgram(g_highlightProgramId);
 
 			//nahrajeme modelview a projection matrix do shaderu
-			glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
-			glUniformMatrix4fv(glGetUniformLocation(g_tesselationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(g_tessellationProgramId, "u_ProjectionMatrix"), 1, GL_FALSE, &g_CameraProjectionMatrix[0][0]);
+			glUniformMatrix4fv(glGetUniformLocation(g_tessellationProgramId, "u_ModelViewMatrix"), 1, GL_FALSE, &g_CameraViewMatrix[0][0]);
 			
 			//height map
 			hHeightTex = glGetUniformLocation(g_highlightProgramId, "u_heightTexture");
@@ -134,10 +134,10 @@ void cbInitGL()
 	triangles = genPlainMesh(10.0, 100, 50, &triangleCount);
 
 	//max factor, that produces less vertices than max_vertices
-	int max_tesselation_factor = sqrt((max_vertices / (float) triangleCount)); 
+	int max_tessellation_factor = sqrt((max_vertices / (float) triangleCount)); 
 
     // Init app GUI
-    initGUI(max_tesselation_factor);
+    initGUI(max_tessellation_factor);
 
 	glClearColor(0.3f, 0.3f, 0.7f, 0);
     glEnable(GL_DEPTH_TEST);
@@ -187,32 +187,32 @@ void cbInitGL()
 void TW_CALL cbCompileShaderProgram(void *clientData)
 {
     // Delete shader program if exists
-    if (g_tesselationProgramId)
+    if (g_tessellationProgramId)
     {
-        glDeleteProgram(g_tesselationProgramId);
+        glDeleteProgram(g_tessellationProgramId);
 	}
     // Create shader program object
-    g_tesselationProgramId = glCreateProgram();
+    g_tessellationProgramId = glCreateProgram();
 
     if (g_UseVertexShader)
     {
         // Create shader objects for vertex shader
         GLuint id = pgr2CreateShaderFromFile(GL_VERTEX_SHADER, VS_TESS_FILE_NAME);
-        glAttachShader(g_tesselationProgramId, id);
+        glAttachShader(g_tessellationProgramId, id);
         glDeleteShader(id);
     }
     if (g_UseGeometryShader)
     {
         // Create shader objects for geometry shader
         GLuint id = pgr2CreateShaderFromFile(GL_GEOMETRY_SHADER, GS_FILE_NAME);
-        glAttachShader(g_tesselationProgramId, id);
+        glAttachShader(g_tessellationProgramId, id);
         glDeleteShader(id);
     }
     if (g_UseFragmentShader)
     {
         // Create shader objects for fragment shader
         GLuint id = pgr2CreateShaderFromFile(GL_FRAGMENT_SHADER, FS_TESS_FILE_NAME);
-        glAttachShader(g_tesselationProgramId, id);
+        glAttachShader(g_tessellationProgramId, id);
         glDeleteShader(id);
     }
 
@@ -238,16 +238,16 @@ void TW_CALL cbCompileShaderProgram(void *clientData)
     }
 
     // Link shader program
-	glLinkProgram(g_tesselationProgramId);
+	glLinkProgram(g_tessellationProgramId);
     glLinkProgram(g_highlightProgramId);
-    if (!pgr2CheckProgramLinkStatus(g_highlightProgramId) || !pgr2CheckProgramLinkStatus(g_tesselationProgramId))
+    if (!pgr2CheckProgramLinkStatus(g_highlightProgramId) || !pgr2CheckProgramLinkStatus(g_tessellationProgramId))
     {
-        pgr2CheckProgramInfoLog(g_tesselationProgramId);
+        pgr2CheckProgramInfoLog(g_tessellationProgramId);
 		pgr2CheckProgramInfoLog(g_highlightProgramId);
         printf("Shader program creation failed.\n\n");
-        glDeleteProgram(g_tesselationProgramId);
+        glDeleteProgram(g_tessellationProgramId);
         glDeleteProgram(g_highlightProgramId);
-        g_tesselationProgramId  = 0;
+        g_tessellationProgramId  = 0;
         g_highlightProgramId  = 0;
         g_UseShaders = false;
         return;
@@ -334,7 +334,7 @@ void freeMemory() {
 int main(int argc, char* argv[]) 
 {
     int r = common_main(g_WindowWidth, g_WindowHeight,
-                    "[PGR2] Vertex shader tesselation",
+                    "[PGR2] Vertex shader tessellation",
                     cbInitGL,              // init GL callback function
                     cbDisplay,             // display callback function
                     cbWindowSizeChanged,   // window resize callback function

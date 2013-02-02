@@ -2,12 +2,12 @@
 
 uniform mat4 u_ModelViewMatrix;
 
-uniform int u_tessFactor;			//tesselation factor
-uniform int u_subtriangles;			//number of produced triangles (tesselation factor square)
-uniform float u_maxTessDistance;	//behind this distance, no tesselation is done
+uniform int u_tessFactor;			//tessellation factor
+uniform int u_subtriangles;			//number of produced triangles (tessellation factor square)
+uniform float u_maxTessDistance;	//behind this distance, no tessellation is done
 
-uniform bool u_freeze;				//flag, if the tesselation is freezed
-uniform vec3 u_freezePos;			//position of tesselation center
+uniform bool u_freeze;				//flag, if the tessellation is freezed
+uniform vec3 u_freezePos;			//position of tessellation center
 
 uniform samplerBuffer u_vertexTBO;	//vertex data
 //uniform isamplerBuffer u_indicesTBO; //indices data
@@ -22,7 +22,7 @@ out block {
 out int v_discard;					//if not 0, vertex is dicarded on geometry shader
 
 const float heightMult = 0.1f;		//height correction in height map
-const float minDistance = 0.5;		//minimal distance, where tesselation has always maximal factor
+const float minDistance = 0.5;		//minimal distance, where tessellation has always maximal factor
 
 const ivec3 off = ivec3(-1, 0, 1); 	//offsets for normals computation
 const vec2 size = vec2(2.0, 0.0);
@@ -53,7 +53,7 @@ void main () {
 
 	c.y = texture2D(u_heightTexture, texCoord).r * heightMult;//correct centroid height
 
-	//calculate the distance of tesselation centre from centroid
+	//calculate the distance of tessellation centre from centroid
 	vec3 d; 
 	if(u_freeze) {
 		d = c.xyz + u_freezePos; //distance from freezed point (in object space)
@@ -65,7 +65,7 @@ void main () {
 
 	float dist = sqrt(d.x * d.x + d.y * d.y + d.z * d.z); //the final distance
 
-	//compute the final adaptive tesselation factor
+	//compute the final adaptive tessellation factor
 	int tessFactor, subTriangles;
 	if(dist < minDistance) {
 		tessFactor = u_tessFactor;
