@@ -5,8 +5,8 @@
 
 
 // GLOBAL CONSTANTS____________________________________________________________
-const char*	HEIGHTMAP_TEXTURE_FILE_NAME = "data/world_height_1024.raw";
-const char*	DIFFUSE_TEXTURE_FILE_NAME	= "data/world_diffuse_1024.raw";
+const char*	HEIGHTMAP_TEXTURE_FILE_NAME = "data/world_height_8192.raw";
+const char*	DIFFUSE_TEXTURE_FILE_NAME	= "data/world_diffuse_8192.raw";
 
 const char*	VS_TESS_FILE_NAME			= "src/tessellation.vert";
 const char*	GS_FILE_NAME				= "src/tessellation.geom";

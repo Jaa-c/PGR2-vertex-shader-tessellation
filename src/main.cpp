@@ -18,7 +18,7 @@
 
 #define USE_ANTTWEAKBAR
 
-#include "../../common/common.h"
+#include "../lib/common/common.h"
 
 #include <iostream>
 #include <sstream>

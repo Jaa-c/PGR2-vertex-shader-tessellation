@@ -5,4 +5,6 @@ seminarka-teselace.sdf
 _UpgradeReport_Files/
 ipch/
 seminarka-teselace.opensdf
-data/
+
+data/world_diffuse_8192.raw
+data/world_height_8192.raw
