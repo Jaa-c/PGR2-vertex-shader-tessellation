@@ -99,10 +99,10 @@ void cbKeyboardChanged(int key, int action)
 			cameraPos[2] -= g_CameraViewMatrix[2][0] * walkSpeed;
 			break;
 		case 'r' : 
-			g_WireMode          = !g_WireMode;                       
+			g_WireMode = !g_WireMode;                       
 			break;
 		case 'h' : 
-			g_highlightOrig     = !g_highlightOrig;
+			g_highlightOrig = !g_highlightOrig;
 			break;
 		case 'f' : 
 			cbFreeze(NULL, NULL);

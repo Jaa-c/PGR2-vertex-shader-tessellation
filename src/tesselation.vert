@@ -10,7 +10,7 @@ uniform bool u_freeze;				//flag, if the tesselation is freezed
 uniform vec3 u_freezePos;			//position of tesselation center
 
 uniform samplerBuffer u_vertexTBO;	//vertex data
-uniform isamplerBuffer u_indicesTBO; //indices data
+//uniform isamplerBuffer u_indicesTBO; //indices data
 uniform sampler2D u_heightTexture;	//height texture for displacement mapping
 
 out block {
@@ -130,14 +130,14 @@ void main () {
 
 		//the following code fragment is taken from http://stackoverflow.com/a/5284527/683905
 		//it computes normals from the height map
-		vec4 wave = texture2D(u_heightTexture, Out.v_texCoord);
+		vec4 height = texture2D(u_heightTexture, Out.v_texCoord);
 		float s01 = textureOffset(u_heightTexture, Out.v_texCoord, off.xy).x;
 		float s21 = textureOffset(u_heightTexture, Out.v_texCoord, off.zy).x;
 		float s10 = textureOffset(u_heightTexture, Out.v_texCoord, off.yx).x;
 		float s12 = textureOffset(u_heightTexture, Out.v_texCoord, off.yz).x;
 		vec3 va = normalize(vec3(size.x, s21-s01, size.y));
 		vec3 vb = normalize(vec3(size.y, s12-s10, -size.x));
-		vec4 bump = vec4(cross(va,vb), wave.x);
+		vec4 bump = vec4(cross(va,vb), height.x);
 
 		vertex.y += (bump.w) * heightMult; //final vertex position
 	

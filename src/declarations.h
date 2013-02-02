@@ -91,3 +91,4 @@ void TW_CALL cbGetShaderStatus(void*, void*);
 void TW_CALL cbFreeze(const void *value, void *clientData);
 void TW_CALL cbGetFreeze(void *value, void *clientData);
 void TW_CALL cbCompileShaderProgram(void *clientData);
+float* genPlainMesh(float size, int width, int height, int * count);
